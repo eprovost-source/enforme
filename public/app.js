@@ -19,7 +19,9 @@ function loadState(){
   return s;
 }
 let S = loadState();
-function save(){ localStorage.setItem(KEY, JSON.stringify(S)); }
+const TOKEN_KEY = "enforme.token";
+let authToken = null, syncTimer = null;
+function save(){ localStorage.setItem(KEY, JSON.stringify(S)); scheduleSync(); }
 
 /* ---------- Helpers dates ---------- */
 function pad(n){ return String(n).padStart(2,"0"); }
@@ -528,8 +530,12 @@ function renderTrack(){
     <button class="btn-ghost btn-block mt" onclick="testNotif()">Tester une notification</button>
     <div class="muted small mt">Les rappels se déclenchent quand l'app a été ouverte dans la journée (Android). Garde l'icône sur ton écran d'accueil.${r.ozempic?` 💉 Ozempic : ${DAY_LABEL[r.ozempic]} à ${r.ozempicTime||'09:00'}.`:""}</div>
   </div>
-  <div class="card center muted small">EnForme · données stockées sur ton appareil uniquement.
-    <button class="btn-ghost btn-block mt" onclick="exportData()">Exporter mes données</button></div>`;
+  <h2 class="section-title">👤 Compte</h2>
+  <div class="card">
+    <div class="muted small mb">Connecté${authEmail()?` : <strong>${esc(authEmail())}</strong>`:""} · données synchronisées dans le cloud.</div>
+    <button class="btn-ghost btn-block" onclick="exportData()">Exporter mes données</button>
+    <button class="btn-ghost btn-block mt" onclick="logout()">Se déconnecter</button>
+  </div>`;
   $("#view-track").innerHTML = html;
 }
 
@@ -971,12 +977,98 @@ async function syncPush(){
   } catch(e){}
 }
 
-/* ---- Init ---- */
-render();
-startAnim();
-if(S.settings.reminders.enabled) scheduleReminders();
-document.addEventListener("visibilitychange",()=>{ if(!document.hidden && S.settings.reminders.enabled) scheduleReminders(); });
+/* ---- Authentification + synchro cloud ---- */
+function authHeaders(){ return authToken ? { "Authorization": "Bearer " + authToken } : {}; }
+function authEmail(){
+  try {
+    let b = (authToken||"").split(".")[0]; if(!b) return "";
+    b = b.replace(/-/g,"+").replace(/_/g,"/"); b += "=".repeat((4 - b.length % 4) % 4);
+    return (JSON.parse(decodeURIComponent(escape(atob(b)))).email) || "";
+  } catch(e){ return ""; }
+}
+async function apiAuth(action, email, password){
+  const r = await fetch("/api/auth", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ action, email, password }) });
+  const j = await r.json().catch(()=>({ error:"Réponse invalide du serveur" }));
+  if(!r.ok || j.error) throw new Error(j.error || "Erreur de connexion");
+  return j;
+}
+function pushRemoteState(){
+  if(!authToken) return Promise.resolve();
+  return fetch("/api/state", { method:"POST", headers: Object.assign({"Content-Type":"application/json"}, authHeaders()), body: JSON.stringify({ data: S }) }).catch(()=>{});
+}
+function scheduleSync(){
+  if(!authToken) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(pushRemoteState, 1500);
+}
+async function loadRemoteState(){
+  const r = await fetch("/api/state", { headers: authHeaders() });
+  if(r.status === 401){ const e = new Error("unauth"); e.unauth = true; throw e; }
+  const j = await r.json().catch(()=>({}));
+  if(j && j.data && Object.keys(j.data).length){
+    localStorage.setItem(KEY, JSON.stringify(j.data));   // le cloud fait foi
+    S = loadState();
+  } else {
+    await pushRemoteState();                             // 1re connexion : on téléverse les données locales
+  }
+}
+let booted = false;
+function bootApp(){
+  if(booted) return; booted = true;
+  hideLogin();
+  render(); startAnim();
+  if(S.settings.reminders.enabled) scheduleReminders();
+  document.addEventListener("visibilitychange",()=>{ if(!document.hidden && S.settings.reminders.enabled) scheduleReminders(); });
+  if(S.settings.pushEnabled) syncPush();
+}
+function logout(){ localStorage.removeItem(TOKEN_KEY); authToken = null; location.reload(); }
 
+let authMode = "login";
+function showLogin(){
+  document.body.classList.add("logged-out");
+  let el = document.getElementById("auth-screen");
+  if(!el){ el = document.createElement("div"); el.id = "auth-screen"; document.body.appendChild(el); }
+  const signup = authMode === "signup";
+  el.innerHTML = `<div class="auth-card">
+    <div class="auth-logo">🔥 EnForme</div>
+    <h2>${signup ? "Créer mon compte" : "Connexion"}</h2>
+    <input id="authEmail" type="email" inputmode="email" autocomplete="email" placeholder="Courriel">
+    <input id="authPw" type="password" autocomplete="${signup?'new-password':'current-password'}" placeholder="Mot de passe">
+    <div id="authErr" class="auth-err"></div>
+    <button id="authBtn" class="btn-accent btn-block" onclick="doAuth()">${signup ? "Créer mon compte" : "Se connecter"}</button>
+    <div class="auth-toggle muted small mt">${signup ? "Déjà un compte ?" : "Pas encore de compte ?"}
+      <a onclick="toggleAuthMode()">${signup ? "Se connecter" : "Créer un compte"}</a></div>
+  </div>`;
+  el.style.display = "flex";
+  setTimeout(()=>{ const i = document.getElementById("authEmail"); if(i) i.focus(); }, 80);
+}
+function hideLogin(){ const el = document.getElementById("auth-screen"); if(el) el.style.display = "none"; document.body.classList.remove("logged-out"); }
+function toggleAuthMode(){ authMode = authMode === "signup" ? "login" : "signup"; showLogin(); }
+async function doAuth(){
+  const email = (document.getElementById("authEmail").value||"").trim();
+  const pw = document.getElementById("authPw").value||"";
+  const errEl = document.getElementById("authErr");
+  const btn = document.getElementById("authBtn");
+  if(!email || !pw){ errEl.textContent = "Remplis les deux champs."; return; }
+  btn.disabled = true; errEl.textContent = "";
+  try {
+    const res = await apiAuth(authMode, email, pw);
+    authToken = res.token; localStorage.setItem(TOKEN_KEY, res.token);
+    await loadRemoteState();
+    bootApp();
+  } catch(e){ errEl.textContent = e.message || "Erreur"; btn.disabled = false; }
+}
+function initAuth(){
+  authToken = localStorage.getItem(TOKEN_KEY);
+  if(!authToken){ showLogin(); return; }
+  loadRemoteState().then(bootApp).catch(err=>{
+    if(err && err.unauth){ localStorage.removeItem(TOKEN_KEY); authToken = null; showLogin(); }
+    else { bootApp(); } // hors-ligne : on démarre avec le cache local
+  });
+}
+
+/* ---- Init ---- */
+initAuth();
 if("serviceWorker" in navigator){
-  window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").then(()=>{ if(S.settings.pushEnabled) syncPush(); }).catch(()=>{}));
+  window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 }

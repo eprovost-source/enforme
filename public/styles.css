@@ -157,3 +157,14 @@ label.set-row{ display:flex; justify-content:space-between; align-items:center; 
 .hidden{ display:none !important; }
 .center{ text-align:center; }
 .mt{ margin-top:12px; } .mb{ margin-bottom:12px; }
+
+/* Écran de connexion */
+body.logged-out .app-header, body.logged-out main, body.logged-out .tabbar { display:none !important; }
+#auth-screen{ position:fixed; inset:0; z-index:100; background:var(--bg); display:none; align-items:center; justify-content:center; padding:24px; }
+.auth-card{ width:100%; max-width:360px; background:var(--card); border:1px solid var(--line); border-radius:20px; padding:24px; box-shadow:var(--shadow); }
+.auth-logo{ font-size:22px; font-weight:800; text-align:center; }
+.auth-card h2{ text-align:center; margin:6px 0 18px; font-size:18px; }
+.auth-card input{ width:100%; font-size:16px; padding:13px; border-radius:12px; border:1px solid var(--line); background:var(--bg2); color:var(--txt); margin-bottom:10px; }
+.auth-err{ color:var(--red); font-size:13px; min-height:18px; margin-bottom:6px; }
+.auth-toggle{ text-align:center; }
+.auth-toggle a{ color:var(--accent); cursor:pointer; text-decoration:underline; }
