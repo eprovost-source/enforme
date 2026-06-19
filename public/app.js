@@ -15,6 +15,7 @@ function loadState(){
   s.grocery = s.grocery || {};        // { 'item': true }
   s.mealOverrides = s.mealOverrides || {}; // { 'jour-type': { idx: 'label' } }
   s.journal = s.journal || {};        // { 'YYYY-MM-DD': [{id,name,quantity,kcal,protein}] }
+  s.ozempic = s.ozempic || [];        // [{date,dose,note}]
   return s;
 }
 let S = loadState();
@@ -320,10 +321,12 @@ function renderDiet(){
     <button class="${dietTab==='repas'?'btn-accent':'btn-ghost'} btn-sm" onclick="setDietTab('repas')">🍽️ Repas</button>
     <button class="${dietTab==='epicerie'?'btn-accent':'btn-ghost'} btn-sm" onclick="setDietTab('epicerie')">🛒 Épicerie</button>
     <button class="${dietTab==='batch'?'btn-accent':'btn-ghost'} btn-sm" onclick="setDietTab('batch')">🍳 Batch</button>
+    <button class="${dietTab==='recettes'?'btn-accent':'btn-ghost'} btn-sm" onclick="setDietTab('recettes')">📖 Recettes</button>
   </div>`;
 
   if(dietTab==="repas") html += dietRepas();
   else if(dietTab==="epicerie") html += dietEpicerie();
+  else if(dietTab==="recettes") html += dietRecettes();
   else html += dietBatch();
 
   $("#view-diet").innerHTML = html;
@@ -386,6 +389,29 @@ function dietBatch(){
   </div></div>`;
   return html;
 }
+function dietRecettes(){
+  let html = `<h2 class="section-title">📖 Recettes détaillées</h2>`;
+  RECIPES.forEach(r=>{
+    html += `<div class="card" onclick="openRecipe('${r.id}')" style="cursor:pointer">
+      <div class="row between"><h3>${r.emoji} ${esc(r.title)}</h3><span class="muted small">${esc(r.time)} ›</span></div>
+      <div class="muted small">${esc(r.yield)} · ${r.steps.length} étapes</div>
+    </div>`;
+  });
+  return html;
+}
+function openRecipe(id){
+  const r = RECIPES.find(x=>x.id===id); if(!r) return;
+  let html = `<h3>${r.emoji} ${esc(r.title)}</h3>
+    <div class="muted small mb">${esc(r.time)} · ${esc(r.yield)}</div>
+    <div class="card2" style="background:var(--card2);border-radius:12px;padding:12px;margin-bottom:10px">
+      <strong>Ingrédients</strong>
+      <div class="ings mt">${r.ingredients.map(i=>`<div class="ing"><span>${esc(i)}</span></div>`).join("")}</div>
+    </div>
+    <strong>Étapes</strong><div class="ings mt">`;
+  r.steps.forEach((s,i)=> html += `<div class="ing"><span><strong style="color:var(--accent2)">${i+1}.</strong> ${esc(s)}</span></div>`);
+  html += `</div><button class="btn-ghost btn-block mt" onclick="closeModal()">Fermer</button>`;
+  openModal(html);
+}
 
 /* ---- Repas : labels effectifs + shuffle ---- */
 function effLabel(day,type,item,idx){
@@ -436,7 +462,8 @@ function renderTrack(){
   const days = Math.max(1, Math.round((Date.now()-sd.getTime())/86400000));
   const perWeek = (lost/days*7);
 
-  let html=`<h2 class="section-title">📊 Suivi du poids</h2>
+  let html = weeklyReview();
+  html += `<h2 class="section-title">📊 Suivi du poids</h2>
   <div class="kpi-grid">
     <div class="kpi"><div class="num">${w}</div><div class="lab">Actuel (lb)</div></div>
     <div class="kpi"><div class="num" style="color:var(--green)">${lost>=0?"−":"+"}${Math.abs(lost).toFixed(1)}</div><div class="lab">Perdu depuis ${S.settings.startWeight}</div></div>
@@ -464,6 +491,9 @@ function renderTrack(){
     });
     html += `</div>`;
   }
+
+  // Suivi Ozempic
+  html += ozempicSection();
 
   // Réglages objectifs
   html += `<h2 class="section-title">🎯 Objectifs</h2>
@@ -502,6 +532,106 @@ function renderTrack(){
     <button class="btn-ghost btn-block mt" onclick="exportData()">Exporter mes données</button></div>`;
   $("#view-track").innerHTML = html;
 }
+
+/* ---- Bilan hebdomadaire ---- */
+function lastNDates(n){ const arr=[]; const d=new Date(); for(let i=n-1;i>=0;i--){ const x=new Date(d); x.setDate(d.getDate()-i); arr.push(dateKey(x)); } return arr; }
+function dayEaten(dk){
+  const p=dk.split("-").map(Number); const d=new Date(p[0],p[1]-1,p[2]); const dn=dayNameOf(d);
+  const plan=MEAL_PLAN[dn]; const checks=S.checks[dk]||{}; const j=S.journal[dk]||[];
+  let k=0,pr=0,logged=false;
+  ["dej","collation","diner","souper"].forEach(t=>{ if(checks["meal-"+t]){ k+=plan[t].kcal; pr+=plan[t].prot; logged=true; } });
+  j.forEach(e=>{ k+=e.kcal||0; pr+=e.protein||0; logged=true; });
+  return { kcal:k, protein:pr, logged, workout: !!checks.workout };
+}
+function weeklyReview(){
+  const dates=lastNDates(7);
+  const data=dates.map(dayEaten);
+  const loggedDays=data.filter(x=>x.logged);
+  const avgK=loggedDays.length?Math.round(loggedDays.reduce((s,x)=>s+x.kcal,0)/loggedDays.length):0;
+  const avgP=loggedDays.length?Math.round(loggedDays.reduce((s,x)=>s+x.protein,0)/loggedDays.length):0;
+  const workouts=data.filter(x=>x.workout).length;
+  // variation de poids sur ~7 jours
+  let wDelta=null;
+  if(S.weights.length>=1){
+    const cutoff=dates[0]; const recent=currentWeight();
+    const old=S.weights.filter(e=>e.date<cutoff).slice(-1)[0] || S.weights[0];
+    if(old) wDelta=recent-old.lbs;
+  }
+  const kColor=avgK<=S.settings.kcalTarget?"var(--green)":"var(--accent2)";
+  const pColor=avgP>=S.settings.proteinTarget?"var(--green)":"var(--accent2)";
+  return `<h2 class="section-title">📈 Bilan de la semaine</h2>
+  <div class="kpi-grid">
+    <div class="kpi"><div class="num" style="color:${kColor}">${avgK}</div><div class="lab">kcal/jour (cible ${S.settings.kcalTarget})</div></div>
+    <div class="kpi"><div class="num" style="color:${pColor}">${avgP}</div><div class="lab">g prot./jour (cible ${S.settings.proteinTarget})</div></div>
+    <div class="kpi"><div class="num">${workouts}</div><div class="lab">séances (7 j)</div></div>
+  </div>
+  <div class="card">
+    <div class="row between"><strong>Calories — 7 derniers jours</strong>
+      ${wDelta!==null?`<span class="pill ${wDelta<=0?'green':'accent'}">${wDelta<=0?"−":"+"}${Math.abs(wDelta).toFixed(1)} lb</span>`:""}</div>
+    <div class="chart-wrap mt">${weeklyKcalChart(dates,data)}</div>
+    <div class="muted small mt center">${loggedDays.length}/7 jours suivis · ligne = ta cible (${S.settings.kcalTarget})</div>
+  </div>`;
+}
+function weeklyKcalChart(dates,data){
+  const W=600,H=150,P=22,bw=(W-2*P)/7*0.62;
+  const target=S.settings.kcalTarget;
+  const mx=Math.max(target*1.2, Math.max.apply(null,data.map(d=>d.kcal).concat([1])))*1.05;
+  const y=v=>P+(1-v/mx)*(H-2*P);
+  const x=i=>P+(i+0.5)*((W-2*P)/7);
+  let bars="";
+  data.forEach((d,i)=>{
+    const h=Math.max(0,(H-2*P)-(y(d.kcal)-P));
+    const col=d.kcal===0?"var(--line)":(d.kcal<=target?"var(--green)":"var(--accent2)");
+    bars+=`<rect x="${(x(i)-bw/2).toFixed(1)}" y="${y(d.kcal).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="3" fill="${col}"/>`;
+    const lbl=["D","L","M","M","J","V","S"][new Date(dates[i].split("-").map(Number)[0],dates[i].split("-").map(Number)[1]-1,dates[i].split("-").map(Number)[2]).getDay()];
+    bars+=`<text x="${x(i).toFixed(1)}" y="${H-6}" fill="var(--muted)" font-size="11" text-anchor="middle">${lbl}</text>`;
+  });
+  const ty=y(target).toFixed(1);
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    <line x1="${P}" y1="${ty}" x2="${W-P}" y2="${ty}" stroke="var(--accent)" stroke-dasharray="5 5" stroke-width="1.5"/>
+    ${bars}</svg>`;
+}
+
+/* ---- Suivi Ozempic ---- */
+function ozempicSection(){
+  const log=S.ozempic.slice().sort((a,b)=>a.date<b.date?1:-1);
+  const last=log[0];
+  let next="";
+  if(last){ const p=last.date.split("-").map(Number); const d=new Date(p[0],p[1]-1,p[2]); d.setDate(d.getDate()+7); next=frFullDate(dateKey(d)); }
+  let html=`<h2 class="section-title">💉 Suivi Ozempic</h2><div class="card">
+    <div class="row between">
+      <div>${last?`<strong>Dose actuelle : ${esc(last.dose)}</strong><div class="muted small">Dernière : ${esc(frFullDate(last.date))}${next?` · prochaine ≈ ${esc(next)}`:""}</div>`:`<strong>Aucune injection enregistrée</strong>`}</div>
+      <button class="btn-accent btn-sm" onclick="logOzempic()">+ Injection</button>
+    </div>`;
+  if(log.length){
+    html+=`<div class="ings mt">`;
+    log.slice(0,8).forEach(e=>{
+      html+=`<div class="ing"><span>${esc(frFullDate(e.date))} · <strong>${esc(e.dose)}</strong>${e.note?`<br><span class="muted small">${esc(e.note)}</span>`:""}</span>
+        <button class="swp" onclick="delOzempic('${e.id}')">🗑️</button></div>`;
+    });
+    html+=`</div>`;
+  }
+  html+=`</div>`;
+  return html;
+}
+function logOzempic(){
+  const opts=OZEMPIC_DOSES.map(d=>`<option value="${d}">${d}</option>`).join("");
+  openModal(`<h3>💉 Enregistrer une injection</h3>
+    <label class="set-row">Date<input type="date" id="ozDate" value="${todayKey()}"></label>
+    <label class="set-row">Dose<select id="ozDose">${opts}</select></label>
+    <div class="mt"><div class="muted small mb">Comment tu te sens (optionnel)</div>
+      <textarea id="ozNote" rows="2" style="width:100%;font-size:16px;padding:10px;border-radius:12px;border:1px solid var(--line);background:var(--bg2);color:var(--txt)" placeholder="ex. nausée légère, appétit coupé…"></textarea></div>
+    <button class="btn-accent btn-block mt" onclick="saveOzempic()">Enregistrer</button>
+    <button class="btn-ghost btn-block mt" onclick="closeModal()">Annuler</button>`);
+}
+function saveOzempic(){
+  const date=$("#ozDate").value||todayKey();
+  const dose=$("#ozDose").value;
+  const note=($("#ozNote").value||"").trim();
+  S.ozempic.push({ id:"oz"+Date.now(), date, dose, note });
+  save(); closeModal(); toast("Injection enregistrée 💉"); renderTrack();
+}
+function delOzempic(id){ S.ozempic=S.ozempic.filter(e=>e.id!==id); save(); renderTrack(); }
 
 /* ---- Graphique poids (SVG) ---- */
 function weightChart(){

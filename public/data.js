@@ -293,6 +293,56 @@ const DEFAULTS = {
   }
 };
 
+// Doses Ozempic (titration habituelle — suivi par le médecin)
+const OZEMPIC_DOSES = ["0,25 mg", "0,5 mg", "1,0 mg", "1,7 mg", "2,0 mg"];
+
+// Recettes détaillées (surtout les bases batch + quelques montages)
+const RECIPES = [
+  { id: "poulet", emoji: "🍗", title: "Poulet au four (batch)", time: "~35 min", yield: "8-10 poitrines",
+    ingredients: ["8-10 poitrines de poulet", "Huile d'olive (2 c. à s.)", "Paprika, ail, sel, poivre", "Cumin (optionnel)"],
+    steps: [
+      "Préchauffe le four à 200 °C (400 °F).",
+      "Éponge les poitrines, dépose-les sur une grande plaque.",
+      "Badigeonne d'huile, assaisonne généreusement des deux côtés.",
+      "Cuis 22-28 min, jusqu'à 74 °C à cœur (jus clair).",
+      "Laisse reposer 5 min, tranche. Conserve 4 jours au frigo." ] },
+  { id: "boeuf", emoji: "🥩", title: "Bœuf haché maigre assaisonné (batch)", time: "~20 min", yield: "3-4 lbs",
+    ingredients: ["3-4 lbs bœuf haché maigre", "1 oignon haché", "Ail", "Paprika, cumin, sel, poivre", "Sauce soya légère (filet)"],
+    steps: [
+      "Fais revenir l'oignon 3 min dans un grand chaudron.",
+      "Ajoute le bœuf, défais-le à la cuillère, cuis jusqu'à ce qu'il ne soit plus rosé.",
+      "Égoutte le gras. Assaisonne, ajoute un filet de sauce soya.",
+      "Laisse mijoter 3-4 min. Sert en bols, wraps, tacos. Conserve 4 jours." ] },
+  { id: "legumes", emoji: "🥦", title: "Légumes rôtis (batch)", time: "~25 min", yield: "2-3 plaques",
+    ingredients: ["Brocoli, poivrons, courgette, chou-fleur, carottes", "Huile d'olive", "Sel, poivre, ail"],
+    steps: [
+      "Préchauffe à 220 °C (425 °F).",
+      "Coupe les légumes en morceaux réguliers.",
+      "Mélange avec huile + assaisonnements, étale en une couche sur les plaques.",
+      "Rôtis 20-25 min en remuant à mi-cuisson. Conserve 4-5 jours." ] },
+  { id: "pancakes", emoji: "🥞", title: "Pancakes protéinés", time: "~10 min", yield: "1 portion",
+    ingredients: ["1 banane", "2 œufs", "1 dose protéine en poudre", "⅓ tasse flocons d'avoine", "Fraises"],
+    steps: [
+      "Écrase la banane, mélange avec œufs, protéine et avoine.",
+      "Laisse reposer 2 min (l'avoine épaissit).",
+      "Cuis à feu moyen, petites louches, ~2 min par côté.",
+      "Garnis de fraises. ~30 g de protéines." ] },
+  { id: "chou-fleur", emoji: "🥣", title: "Purée de chou-fleur", time: "~15 min", yield: "4 portions",
+    ingredients: ["1 chou-fleur", "Un peu de lait", "Sel, poivre, ail"],
+    steps: [
+      "Coupe le chou-fleur, fais-le bouillir ou cuire vapeur 10-12 min (bien tendre).",
+      "Égoutte très bien.",
+      "Réduis en purée avec un peu de lait, sel, poivre, ail.",
+      "Alternative basse en glucides à la purée de patates." ] },
+  { id: "soupe", emoji: "🍲", title: "Soupe poulet-légumes", time: "~15 min (avec batch)", yield: "Gros chaudron",
+    ingredients: ["Poulet du batch", "Bouillon de poulet clair", "Carottes, céleri, oignon", "Sel, poivre, herbes"],
+    steps: [
+      "Fais revenir oignon, carottes, céleri 4 min.",
+      "Ajoute le bouillon, porte à ébullition.",
+      "Ajoute le poulet effiloché du batch, mijote 8-10 min.",
+      "Ajuste l'assaisonnement. Douce pour l'estomac (jours Ozempic)." ] }
+];
+
 // Petites citations de motivation (rotation quotidienne)
 const QUOTES = [
   "La perte de poids se joue à 80 % dans l'assiette. Tu gères ça un repas à la fois. 💪",
