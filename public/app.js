@@ -766,12 +766,26 @@ function urlB64ToUint8(b64){
   for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
   return arr;
 }
-function pushConfig(){
+function pushEvents(){
   const r = S.settings.reminders;
+  const all = DAYS.slice();
+  const workoutDays = DAYS.filter(d => WEEK_TEMPLATE[d] && WEEK_TEMPLATE[d].kind === "workout");
+  const ev = [];
+  const add = (id, time, days, title, body) => { if (time && days && days.length) ev.push({ id, time, days, title, body }); };
+  add("dej", r.dej, all, "🍽️ Déjeuner", "Protéine + ton shake si l'appétit manque.");
+  add("collation", r.collation, all, "🥤 Collation", "Pense à ta collation protéinée.");
+  add("diner", r.diner, all, "🍽️ Dîner", "Bol protéine + légumes — garde tes protéines hautes.");
+  add("souper", r.souper, all, "🍽️ Souper", "Dernier repas — protéine + légumes.");
+  add("workout", r.workout, workoutDays, "🏋️ Séance", "30 min, on bouge ! 💪");
+  if (r.water) ["09:00","11:00","13:00","15:00","17:00","19:00","21:00"].forEach((t,i)=> add("water"+i, t, all, "💧 Hydratation", "Bois un verre d'eau."));
+  if (r.weighIn) add("pesee", "08:00", [r.weighIn], "⚖️ Pesée", "Pèse-toi à jeun et note-le dans l'app.");
+  if (r.ozempic) add("ozempic", r.ozempicTime || "09:00", [r.ozempic], "💉 Ozempic", "C'est le jour de ton injection.");
+  return ev;
+}
+function pushPayload(){
   let tz = "America/Toronto";
   try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || tz; } catch(e){}
-  return { tz, ozempic: r.ozempic ? { day: r.ozempic, time: r.ozempicTime || "09:00" } : null,
-           weighIn: r.weighIn ? { day: r.weighIn } : null };
+  return { tz, events: pushEvents() };
 }
 async function postSub(body){
   try {
@@ -788,7 +802,7 @@ async function enablePush(){
   const reg = await navigator.serviceWorker.ready;
   let sub = await reg.pushManager.getSubscription();
   if(!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey: urlB64ToUint8(VAPID_PUBLIC) });
-  const ok = await postSub(Object.assign({ subscription: sub }, pushConfig()));
+  const ok = await postSub(Object.assign({ subscription: sub }, pushPayload()));
   if(ok){ S.settings.pushEnabled = true; save(); toast("Notifications garanties activées 🔔"); }
   return ok;
 }
@@ -806,7 +820,7 @@ async function syncPush(){
   try {
     const reg = await navigator.serviceWorker.ready;
     const sub = await reg.pushManager.getSubscription();
-    if(sub) await postSub(Object.assign({ subscription: sub }, pushConfig()));
+    if(sub) await postSub(Object.assign({ subscription: sub }, pushPayload()));
   } catch(e){}
 }
 

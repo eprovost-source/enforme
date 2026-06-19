@@ -39,8 +39,7 @@ module.exports = async (req, res) => {
       const rec = {
         subscription: body.subscription,
         tz: body.tz || "America/Toronto",
-        ozempic: body.ozempic || null,
-        weighIn: body.weighIn || null
+        events: Array.isArray(body.events) ? body.events : []
       };
       list = list.filter(x => x.subscription.endpoint !== rec.subscription.endpoint);
       list.push(rec);
