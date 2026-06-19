@@ -1001,15 +1001,19 @@ function scheduleSync(){
   clearTimeout(syncTimer);
   syncTimer = setTimeout(pushRemoteState, 1500);
 }
+function hasRealData(d){
+  return !!(d && ((d.weights && d.weights.length) || (d.journal && Object.keys(d.journal).length)
+    || (d.ozempic && d.ozempic.length) || (d.checks && Object.keys(d.checks).length)));
+}
 async function loadRemoteState(){
   const r = await fetch("/api/state", { headers: authHeaders() });
   if(r.status === 401){ const e = new Error("unauth"); e.unauth = true; throw e; }
   const j = await r.json().catch(()=>({}));
-  if(j && j.data && Object.keys(j.data).length){
-    localStorage.setItem(KEY, JSON.stringify(j.data));   // le cloud fait foi
+  if(j && hasRealData(j.data)){
+    localStorage.setItem(KEY, JSON.stringify(j.data));   // le cloud a de vraies données → il fait foi
     S = loadState();
   } else {
-    await pushRemoteState();                             // 1re connexion : on téléverse les données locales
+    await pushRemoteState();                             // cloud vide → on téléverse les données de cet appareil
   }
 }
 let booted = false;
