@@ -484,8 +484,14 @@ function renderTrack(){
     <label class="set-row">Séance<input type="time" value="${r.workout}" onchange="setReminder('workout',this.value)"></label>
     <label class="set-row">Rappels d'eau (aux 2 h)
       <span class="switch"><input type="checkbox" ${r.water?"checked":""} onchange="setReminder('water',this.checked)"><span class="sl"></span></span></label>
+    <label class="set-row">💉 Ozempic — jour
+      <select onchange="setReminder('ozempic',this.value)">
+        <option value="" ${!r.ozempic?"selected":""}>Désactivé</option>
+        ${DAYS.map(d=>`<option value="${d}" ${r.ozempic===d?"selected":""}>${DAY_LABEL[d]}</option>`).join("")}
+      </select></label>
+    <label class="set-row">💉 Ozempic — heure<input type="time" value="${r.ozempicTime||'09:00'}" onchange="setReminder('ozempicTime',this.value)"></label>
     <button class="btn-ghost btn-block mt" onclick="testNotif()">Tester une notification</button>
-    <div class="muted small mt">Les rappels se déclenchent quand l'app a été ouverte dans la journée (Android). Garde l'icône sur ton écran d'accueil. 💉 Pense aussi à ton Ozempic le mercredi.</div>
+    <div class="muted small mt">Les rappels se déclenchent quand l'app a été ouverte dans la journée (Android). Garde l'icône sur ton écran d'accueil.${r.ozempic?` 💉 Ozempic : ${DAY_LABEL[r.ozempic]} à ${r.ozempicTime||'09:00'}.`:""}</div>
   </div>
   <div class="card center muted small">EnForme · données stockées sur ton appareil uniquement.
     <button class="btn-ghost btn-block mt" onclick="exportData()">Exporter mes données</button></div>`;
@@ -701,7 +707,7 @@ function scheduleReminders(){
     for(let h=9; h<=21; h+=2) at(pad(h)+":00","💧 Hydratation","Bois un verre d'eau (objectif "+S.settings.waterTargetL+" L).");
   }
   if(todayName()===r.weighIn) at("08:00","⚖️ Pesée","Pèse-toi à jeun et note-le dans l'app.");
-  if(todayName()===r.ozempic) at("09:00","💉 Ozempic","C'est le jour de ton injection.");
+  if(r.ozempic && todayName()===r.ozempic) at(r.ozempicTime||"09:00","💉 Ozempic","C'est le jour de ton injection 💉");
 }
 
 /* ---- Divers ---- */

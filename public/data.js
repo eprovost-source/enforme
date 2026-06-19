@@ -287,7 +287,8 @@ const DEFAULTS = {
   reminders: {
     enabled: false,
     dej: "07:30", collation: "15:00", diner: "12:00", souper: "18:00",
-    workout: "17:00", water: true, weighIn: "dimanche", ozempic: "mercredi"
+    workout: "17:00", water: true, weighIn: "dimanche",
+    ozempic: "mercredi", ozempicTime: "09:00"
   }
 };
 
