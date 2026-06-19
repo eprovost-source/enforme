@@ -7,12 +7,14 @@ const Anthropic = require("@anthropic-ai/sdk");
 
 const MODEL = "claude-opus-4-8";
 
-// Création paresseuse : surtout PAS au chargement du module — le SDK lève une
-// erreur s'il ne trouve pas la clé, ce qui ferait planter la fonction (500)
-// avant notre vérification. On construit le client seulement dans le handler.
+// Clé nettoyée (enlève espaces/retours de ligne/guillemets ajoutés au collage)
+function apiKey() {
+  return (process.env.ANTHROPIC_API_KEY || "").replace(/\s+/g, "").replace(/^["']+|["']+$/g, "");
+}
+// Création paresseuse : surtout PAS au chargement du module.
 let _client = null;
 function getClient() {
-  if (!_client) _client = new Anthropic();
+  if (!_client) _client = new Anthropic({ apiKey: apiKey() });
   return _client;
 }
 
@@ -56,7 +58,8 @@ module.exports = async (req, res) => {
     res.status(405).json({ error: "Méthode non autorisée" });
     return;
   }
-  if (!process.env.ANTHROPIC_API_KEY) {
+  const key = apiKey();
+  if (!key) {
     res.status(500).json({ error: "Clé API non configurée. Ajoute ANTHROPIC_API_KEY dans les réglages Vercel." });
     return;
   }
@@ -93,6 +96,12 @@ module.exports = async (req, res) => {
     res.status(200).json(data);
   } catch (e) {
     const msg = (e && e.message) ? e.message : String(e);
+    const status = (e && e.status) || 500;
+    if (status === 401 || /x-api-key|authentication/i.test(msg)) {
+      const k = apiKey();
+      res.status(401).json({ error: `Clé Anthropic invalide. Vérifie ANTHROPIC_API_KEY dans Vercel (longueur reçue: ${k.length} car., début: "${k.slice(0, 7)}…"). Une clé valide commence par "sk-ant-" et fait ~100+ caractères — recopie-la en entier, sans espace.` });
+      return;
+    }
     res.status(500).json({ error: "Échec de l'analyse : " + msg });
   }
 };
