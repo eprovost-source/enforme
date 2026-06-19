@@ -1,5 +1,5 @@
-/* Service worker — cache app shell + images d'exercices (offline) */
-const CACHE = "enforme-v1";
+/* Service worker — cache app shell + images d'exercices (offline) + push */
+const CACHE = "enforme-v2";
 const SHELL = [
   "./index.html", "./styles.css", "./app.js", "./data.js",
   "./manifest.webmanifest", "./icon.svg"
@@ -38,10 +38,24 @@ self.addEventListener("fetch", e => {
     );
   }
 });
+self.addEventListener("push", e => {
+  let data = {};
+  try { data = e.data ? e.data.json() : {}; } catch (_) { data = { body: e.data ? e.data.text() : "" }; }
+  const title = data.title || "EnForme 🔥";
+  const opts = {
+    body: data.body || "",
+    icon: "icon.svg", badge: "icon.svg",
+    tag: data.tag || "enforme-push", renotify: true,
+    vibrate: [120, 60, 120],
+    data: { url: data.url || "./index.html" }
+  };
+  e.waitUntil(self.registration.showNotification(title, opts));
+});
 self.addEventListener("notificationclick", e => {
   e.notification.close();
+  const target = (e.notification.data && e.notification.data.url) || "./index.html";
   e.waitUntil(clients.matchAll({ type: "window" }).then(list => {
     for (const c of list) { if ("focus" in c) return c.focus(); }
-    if (clients.openWindow) return clients.openWindow("./index.html");
+    if (clients.openWindow) return clients.openWindow(target);
   }));
 });

@@ -490,6 +490,8 @@ function renderTrack(){
         ${DAYS.map(d=>`<option value="${d}" ${r.ozempic===d?"selected":""}>${DAY_LABEL[d]}</option>`).join("")}
       </select></label>
     <label class="set-row">💉 Ozempic — heure<input type="time" value="${r.ozempicTime||'09:00'}" onchange="setReminder('ozempicTime',this.value)"></label>
+    <label class="set-row">🔔 Notif. garantie Ozempic<br><span class="muted small">sonne même app fermée</span>
+      <span class="switch"><input type="checkbox" ${S.settings.pushEnabled?"checked":""} onchange="togglePush(this.checked)"><span class="sl"></span></span></label>
     <button class="btn-ghost btn-block mt" onclick="testNotif()">Tester une notification</button>
     <div class="muted small mt">Les rappels se déclenchent quand l'app a été ouverte dans la journée (Android). Garde l'icône sur ton écran d'accueil.${r.ozempic?` 💉 Ozempic : ${DAY_LABEL[r.ozempic]} à ${r.ozempicTime||'09:00'}.`:""}</div>
   </div>
@@ -673,7 +675,7 @@ function toggleReminders(on){
     });
   } else { S.settings.reminders.enabled=false; save(); clearReminders(); renderTrack(); }
 }
-function setReminder(k,v){ S.settings.reminders[k]=v; save(); if(S.settings.reminders.enabled) scheduleReminders(); }
+function setReminder(k,v){ S.settings.reminders[k]=v; save(); if(S.settings.reminders.enabled) scheduleReminders(); syncPush(); }
 function clearReminders(){ reminderTimers.forEach(t=>clearTimeout(t)); reminderTimers=[]; }
 function showNotif(title,body){
   const opts={ body, icon:"icon.svg", badge:"icon.svg", tag:"enforme", renotify:true };
@@ -755,6 +757,59 @@ function render(){
   else if(currentView==="track") renderTrack();
 }
 
+/* ---- Notifications push (sonnent même app fermée) ---- */
+const VAPID_PUBLIC = "BKINw1ltiFH2akUeaneCzPzMGrMJXUPkGp9hFvqO7xsts3AYhj4ixra-hSGhmBMhzGdVnWTiRG0KAcDdHckMRMA";
+function urlB64ToUint8(b64){
+  const pad = "=".repeat((4 - b64.length % 4) % 4);
+  const base = (b64 + pad).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(base); const arr = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+  return arr;
+}
+function pushConfig(){
+  const r = S.settings.reminders;
+  let tz = "America/Toronto";
+  try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || tz; } catch(e){}
+  return { tz, ozempic: r.ozempic ? { day: r.ozempic, time: r.ozempicTime || "09:00" } : null,
+           weighIn: r.weighIn ? { day: r.weighIn } : null };
+}
+async function postSub(body){
+  try {
+    const res = await fetch("/api/save-sub", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body) });
+    const j = await res.json().catch(()=>({}));
+    if(!res.ok || j.error){ toast(j.error || "Serveur push indisponible"); return false; }
+    return true;
+  } catch(e){ toast("Pas de connexion au serveur push (déployé ?)"); return false; }
+}
+async function enablePush(){
+  if(!("serviceWorker" in navigator) || !("PushManager" in window)){ toast("Push non supporté sur cet appareil"); return false; }
+  const perm = await Notification.requestPermission();
+  if(perm !== "granted"){ toast("Permission de notification refusée"); return false; }
+  const reg = await navigator.serviceWorker.ready;
+  let sub = await reg.pushManager.getSubscription();
+  if(!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey: urlB64ToUint8(VAPID_PUBLIC) });
+  const ok = await postSub(Object.assign({ subscription: sub }, pushConfig()));
+  if(ok){ S.settings.pushEnabled = true; save(); toast("Notifications garanties activées 🔔"); }
+  return ok;
+}
+async function disablePush(){
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if(sub){ await postSub({ action:"remove", endpoint: sub.endpoint }); await sub.unsubscribe(); }
+  } catch(e){}
+  S.settings.pushEnabled = false; save(); toast("Notifications garanties désactivées");
+}
+function togglePush(on){ (on ? enablePush() : disablePush()).then(()=>{ if(currentView==="track") renderTrack(); }); }
+async function syncPush(){
+  if(!S.settings.pushEnabled) return;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if(sub) await postSub(Object.assign({ subscription: sub }, pushConfig()));
+  } catch(e){}
+}
+
 /* ---- Init ---- */
 render();
 startAnim();
@@ -762,5 +817,5 @@ if(S.settings.reminders.enabled) scheduleReminders();
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && S.settings.reminders.enabled) scheduleReminders(); });
 
 if("serviceWorker" in navigator){
-  window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+  window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").then(()=>{ if(S.settings.pushEnabled) syncPush(); }).catch(()=>{}));
 }

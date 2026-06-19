@@ -30,6 +30,14 @@ Dans Vercel → **Settings → Environment Variables**, ajouter :
 
 La clé reste côté serveur ; elle n'est jamais exposée dans l'app. Sans elle, tout le reste fonctionne — seul le journal photo est désactivé.
 
+### Notifications push (rappel Ozempic même app fermée)
+Optionnel. Nécessite :
+1. Une base **Upstash Redis (KV)** ajoutée au projet Vercel (Storage → Create) — injecte automatiquement `KV_REST_API_URL` et `KV_REST_API_TOKEN`.
+2. La variable d'env `VAPID_PRIVATE_KEY` (la clé publique VAPID est dans le code, `public/app.js` et `api/cron.js`).
+3. `api/cron.js` est déclenché par un cron quotidien (`vercel.json` → `crons`, `0 12 * * *` UTC ≈ 8h ET). Le jour configuré, il envoie la notif via Web Push.
+
+> Plan Vercel **Hobby** : cron 1×/jour, précision ±59 min. Parfait pour un rappel **hebdomadaire** (Ozempic) le matin. Pour des heures précises ou plusieurs notifs/jour, passer en Pro.
+
 ## Développement local
 ```bash
 node server.js   # puis ouvrir http://localhost:4321

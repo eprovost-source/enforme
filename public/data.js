@@ -284,6 +284,7 @@ const DEFAULTS = {
   proteinTarget: 170,
   kcalTarget: 1950,
   waterTargetL: 2.75,
+  pushEnabled: false,
   reminders: {
     enabled: false,
     dej: "07:30", collation: "15:00", diner: "12:00", souper: "18:00",
