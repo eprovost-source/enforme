@@ -162,7 +162,7 @@ function renderToday(){
     html += `<div class="check ${done?'done':''}">
       <input type="checkbox" ${done?"checked":""} onchange="toggleCheck('${id}')">
       <div class="body">
-        <div class="t">${esc(m.title)}${m.shake?' <span class="pill accent">+ shake</span>':""}</div>
+        <div class="t">${esc(m.title)} <span class="muted small">· ${m.kcal} kcal · ${m.prot} g prot.</span>${m.shake?' <span class="pill accent">+ shake</span>':""}</div>
         <div class="d">${m.items.map(i=>esc(effLabel(dn,type,i,m.items.indexOf(i)))).join(" · ")}</div>
       </div>
       <button class="icon-btn" onclick="switchView('diet');setDietDay('${dn}')">›</button>
@@ -170,30 +170,34 @@ function renderToday(){
   });
   html += `<div class="macro mt">🎯 Cible du jour : ~${S.settings.kcalTarget} kcal · ${S.settings.proteinTarget} g protéines · ${dayKcal(dn)} kcal planifiés</div></div>`;
 
-  // Journal photo
+  // Bilan du jour : repas cochés (planifiés) + photos
   const j = S.journal[tk] || [];
-  const eatenK = j.reduce((s,e)=>s+(e.kcal||0),0);
-  const eatenP = j.reduce((s,e)=>s+(e.protein||0),0);
+  const photoK = j.reduce((s,e)=>s+(e.kcal||0),0);
+  const photoP = j.reduce((s,e)=>s+(e.protein||0),0);
+  let mealsK = 0, mealsP = 0;
+  ["dej","collation","diner","souper"].forEach(type=>{
+    if(checks["meal-"+type]){ mealsK += plan[type].kcal; mealsP += plan[type].prot; }
+  });
+  const eatenK = mealsK + photoK, eatenP = mealsP + photoP;
   const remK = S.settings.kcalTarget - eatenK;
   const remP = S.settings.proteinTarget - eatenP;
-  html += `<h2 class="section-title">📷 Journal photo</h2><div class="card">
+  html += `<h2 class="section-title">📊 Bilan du jour</h2><div class="card">
     <div class="kpi-grid">
       <div class="kpi"><div class="num">${eatenK}</div><div class="lab">kcal mangées</div></div>
       <div class="kpi"><div class="num" style="color:${remK<0?'var(--red)':'var(--green)'}">${remK}</div><div class="lab">kcal restantes</div></div>
       <div class="kpi"><div class="num" style="color:${remP<0?'var(--green)':'var(--accent2)'}">${eatenP}/${S.settings.proteinTarget}</div><div class="lab">g protéines</div></div>
-    </div>`;
+    </div>
+    <div class="muted small mt center">Repas cochés : ${mealsK} kcal · Photos : ${photoK} kcal</div>`;
   if(j.length){
-    html += `<div class="ings mt">`;
+    html += `<div class="ings mt"><div class="muted small">📷 Repas photographiés :</div>`;
     j.forEach(e=>{
       html += `<div class="ing"><span>${esc(e.name)} <span class="muted small">(${esc(e.quantity||'')})</span><br><span class="muted small">${e.kcal} kcal · ${e.protein} g prot.</span></span>
         <button class="swp" onclick="delJournal('${e.id}')">🗑️</button></div>`;
     });
     html += `</div>`;
-  } else {
-    html += `<div class="muted small mt center">Aucun repas photographié aujourd'hui.</div>`;
   }
-  html += `<button class="btn-accent btn-block mt" onclick="capturePhoto()">📸 Photographier un repas</button>
-    <div class="muted small mt center">Estimation IA approximative (±15-20 %). Ajuste avant d'enregistrer.</div>
+  html += `<button class="btn-accent btn-block mt" onclick="capturePhoto()">📸 Photographier un repas hors plan</button>
+    <div class="muted small mt center">Coche tes repas du plan ci-dessus, ou photographie un repas hors plan (estimation IA ±15-20 %).</div>
   </div>`;
 
   // Eau
