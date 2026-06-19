@@ -42,8 +42,13 @@ module.exports = async (req, res) => {
   if (secret && (req.headers.authorization || "") !== "Bearer " + secret) {
     res.status(401).json({ error: "unauthorized" }); return;
   }
-  const PRIV = (process.env.VAPID_PRIVATE_KEY || "").trim();
+  // Nettoyage défensif : enlève espaces/retours de ligne (même internes) et guillemets
+  const PRIV = (process.env.VAPID_PRIVATE_KEY || "").replace(/\s+/g, "").replace(/^["']+|["']+$/g, "");
   if (!PRIV) { res.status(500).json({ error: "VAPID_PRIVATE_KEY manquante dans Vercel" }); return; }
+  if (PRIV.length !== 43) {
+    res.status(500).json({ error: `VAPID_PRIVATE_KEY a ${PRIV.length} caractères au lieu de 43 — recopie-la exactement.` });
+    return;
+  }
   try {
     webpush.setVapidDetails("mailto:eprovost@equipelupien.com", VAPID_PUBLIC.trim(), PRIV);
   } catch (e) {
