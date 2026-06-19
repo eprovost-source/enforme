@@ -5,9 +5,16 @@
    ============================================================ */
 const Anthropic = require("@anthropic-ai/sdk");
 
-const client = new Anthropic(); // lit ANTHROPIC_API_KEY depuis l'environnement Vercel
-
 const MODEL = "claude-opus-4-8";
+
+// Création paresseuse : surtout PAS au chargement du module — le SDK lève une
+// erreur s'il ne trouve pas la clé, ce qui ferait planter la fonction (500)
+// avant notre vérification. On construit le client seulement dans le handler.
+let _client = null;
+function getClient() {
+  if (!_client) _client = new Anthropic();
+  return _client;
+}
 
 const SCHEMA = {
   type: "object",
@@ -61,7 +68,7 @@ module.exports = async (req, res) => {
     const userText = "Estime les calories et protéines de ce repas."
       + (note ? ` Précision de l'utilisateur : ${String(note).slice(0, 300)}` : "");
 
-    const response = await client.messages.create({
+    const response = await getClient().messages.create({
       model: MODEL,
       max_tokens: 1024,
       system: SYSTEM,
