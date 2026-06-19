@@ -42,9 +42,14 @@ module.exports = async (req, res) => {
   if (secret && (req.headers.authorization || "") !== "Bearer " + secret) {
     res.status(401).json({ error: "unauthorized" }); return;
   }
-  const PRIV = process.env.VAPID_PRIVATE_KEY;
+  const PRIV = (process.env.VAPID_PRIVATE_KEY || "").trim();
   if (!PRIV) { res.status(500).json({ error: "VAPID_PRIVATE_KEY manquante dans Vercel" }); return; }
-  webpush.setVapidDetails("mailto:eprovost@equipelupien.com", VAPID_PUBLIC, PRIV);
+  try {
+    webpush.setVapidDetails("mailto:eprovost@equipelupien.com", VAPID_PUBLIC.trim(), PRIV);
+  } catch (e) {
+    res.status(500).json({ error: "Clé VAPID invalide : " + ((e && e.message) || e) + " — recopie VAPID_PRIVATE_KEY sans espace ni retour de ligne." });
+    return;
+  }
 
   let list = [];
   try { list = JSON.parse((await kv(["GET", KEY])) || "[]"); } catch (e) {
