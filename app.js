@@ -14,6 +14,7 @@ function loadState(){
   s.checks = s.checks || {};          // { 'YYYY-MM-DD': { id:true, water:n } }
   s.grocery = s.grocery || {};        // { 'item': true }
   s.mealOverrides = s.mealOverrides || {}; // { 'jour-type': { idx: 'label' } }
+  s.journal = s.journal || {};        // { 'YYYY-MM-DD': [{id,name,quantity,kcal,protein}] }
   return s;
 }
 let S = loadState();
@@ -168,6 +169,32 @@ function renderToday(){
     </div>`;
   });
   html += `<div class="macro mt">🎯 Cible du jour : ~${S.settings.kcalTarget} kcal · ${S.settings.proteinTarget} g protéines · ${dayKcal(dn)} kcal planifiés</div></div>`;
+
+  // Journal photo
+  const j = S.journal[tk] || [];
+  const eatenK = j.reduce((s,e)=>s+(e.kcal||0),0);
+  const eatenP = j.reduce((s,e)=>s+(e.protein||0),0);
+  const remK = S.settings.kcalTarget - eatenK;
+  const remP = S.settings.proteinTarget - eatenP;
+  html += `<h2 class="section-title">📷 Journal photo</h2><div class="card">
+    <div class="kpi-grid">
+      <div class="kpi"><div class="num">${eatenK}</div><div class="lab">kcal mangées</div></div>
+      <div class="kpi"><div class="num" style="color:${remK<0?'var(--red)':'var(--green)'}">${remK}</div><div class="lab">kcal restantes</div></div>
+      <div class="kpi"><div class="num" style="color:${remP<0?'var(--green)':'var(--accent2)'}">${eatenP}/${S.settings.proteinTarget}</div><div class="lab">g protéines</div></div>
+    </div>`;
+  if(j.length){
+    html += `<div class="ings mt">`;
+    j.forEach(e=>{
+      html += `<div class="ing"><span>${esc(e.name)} <span class="muted small">(${esc(e.quantity||'')})</span><br><span class="muted small">${e.kcal} kcal · ${e.protein} g prot.</span></span>
+        <button class="swp" onclick="delJournal('${e.id}')">🗑️</button></div>`;
+    });
+    html += `</div>`;
+  } else {
+    html += `<div class="muted small mt center">Aucun repas photographié aujourd'hui.</div>`;
+  }
+  html += `<button class="btn-accent btn-block mt" onclick="capturePhoto()">📸 Photographier un repas</button>
+    <div class="muted small mt center">Estimation IA approximative (±15-20 %). Ajuste avant d'enregistrer.</div>
+  </div>`;
 
   // Eau
   html += `<h2 class="section-title">💧 Hydratation</h2><div class="card">
@@ -534,6 +561,93 @@ function exportData(){
   const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
   a.download="enforme-donnees.json"; a.click(); toast("Données exportées");
 }
+
+/* ---- Journal photo (analyse IA) ---- */
+let _journalSeq = 0;
+function capturePhoto(){
+  const inp = document.createElement("input");
+  inp.type = "file"; inp.accept = "image/*"; inp.capture = "environment";
+  inp.onchange = () => { if(inp.files && inp.files[0]) handlePhoto(inp.files[0]); };
+  inp.click();
+}
+function handlePhoto(file){
+  const reader = new FileReader();
+  reader.onload = () => downscale(reader.result, 1024, (dataUrl)=>{
+    const m = /^data:(image\/[a-z]+);base64,(.*)$/.exec(dataUrl);
+    if(!m){ toast("Image illisible"); return; }
+    analyzeMeal(m[2], m[1]);
+  });
+  reader.readAsDataURL(file);
+}
+function downscale(dataUrl, maxEdge, cb){
+  const img = new Image();
+  img.onload = () => {
+    let { width:w, height:h } = img;
+    const scale = Math.min(1, maxEdge/Math.max(w,h));
+    w = Math.round(w*scale); h = Math.round(h*scale);
+    const cv = document.createElement("canvas"); cv.width=w; cv.height=h;
+    cv.getContext("2d").drawImage(img,0,0,w,h);
+    cb(cv.toDataURL("image/jpeg", 0.82));
+  };
+  img.onerror = () => toast("Impossible de lire l'image");
+  img.src = dataUrl;
+}
+function analyzeMeal(base64, mediaType){
+  openModal(`<h3>📷 Analyse en cours…</h3>
+    <div class="center mt mb"><div class="muted">L'IA estime les calories et protéines…</div></div>
+    <div class="bar"><span style="width:100%;animation:fade 1s infinite alternate"></span></div>`);
+  fetch("/api/analyze", {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({ image: base64, mediaType })
+  }).then(r => r.json().then(d => ({ok:r.ok, d})))
+    .then(({ok,d}) => {
+      if(!ok || d.error){ showAnalyzeError(d.error || "Erreur inconnue"); return; }
+      showEstimate(d);
+    })
+    .catch(() => showAnalyzeError("Pas de connexion au serveur d'analyse. (Disponible une fois l'app déployée avec la clé API.)"));
+}
+function showAnalyzeError(msg){
+  openModal(`<h3>😕 Analyse impossible</h3><div class="muted mt mb">${esc(msg)}</div>
+    <button class="btn-ghost btn-block" onclick="closeModal()">Fermer</button>`);
+}
+let _estimate = [];
+function showEstimate(data){
+  _estimate = (data.items||[]).map((it,i)=>({ id:"e"+(i), name:it.name, quantity:it.quantity||"", kcal:+it.kcal||0, protein:+it.protein||0 }));
+  if(!_estimate.length){
+    openModal(`<h3>🍽️ Rien à enregistrer</h3><div class="muted mt mb">${esc(data.note||"Aucun aliment identifié sur la photo.")}</div>
+      <button class="btn-ghost btn-block" onclick="closeModal()">Fermer</button>`);
+    return;
+  }
+  renderEstimate(data);
+}
+function renderEstimate(data){
+  let rows = _estimate.map(e=>`
+    <div class="ing" style="flex-direction:column;align-items:stretch;gap:6px">
+      <div class="row between"><strong>${esc(e.name)}</strong>
+        <button class="swp" onclick="rmEstimate('${e.id}')">✕</button></div>
+      <div class="muted small">${esc(e.quantity)}</div>
+      <div class="row" style="gap:8px">
+        <label class="small" style="flex:1">kcal<input type="number" value="${e.kcal}" oninput="editEstimate('${e.id}','kcal',this.value)" style="width:100%"></label>
+        <label class="small" style="flex:1">protéines (g)<input type="number" value="${e.protein}" oninput="editEstimate('${e.id}','protein',this.value)" style="width:100%"></label>
+      </div>
+    </div>`).join("");
+  const tot = estTotals();
+  openModal(`<h3>✏️ Vérifie et ajuste</h3>
+    ${data && data.confidence?`<div class="muted small mb">Confiance IA : ${esc(data.confidence)}${data.note?` · ${esc(data.note)}`:""}</div>`:""}
+    <div class="ings">${rows}</div>
+    <div class="card mt center"><strong id="estTot">${tot.kcal} kcal · ${tot.protein} g protéines</strong></div>
+    <button class="btn-accent btn-block mt" onclick="saveJournal()">Enregistrer dans le journal</button>
+    <button class="btn-ghost btn-block mt" onclick="closeModal()">Annuler</button>`);
+}
+function estTotals(){ return { kcal:_estimate.reduce((s,e)=>s+(+e.kcal||0),0), protein:_estimate.reduce((s,e)=>s+(+e.protein||0),0) }; }
+function editEstimate(id,field,val){ const e=_estimate.find(x=>x.id===id); if(e){ e[field]=parseInt(val||0,10)||0; const t=estTotals(); const el2=$("#estTot"); if(el2) el2.textContent=`${t.kcal} kcal · ${t.protein} g protéines`; } }
+function rmEstimate(id){ _estimate=_estimate.filter(x=>x.id!==id); if(!_estimate.length){ closeModal(); return; } renderEstimate(null); }
+function saveJournal(){
+  const tk=todayKey(); const arr=S.journal[tk]=S.journal[tk]||[];
+  _estimate.forEach(e=> arr.push({ id:"j"+Date.now()+"_"+(_journalSeq++), name:e.name, quantity:e.quantity, kcal:+e.kcal||0, protein:+e.protein||0 }));
+  save(); closeModal(); toast("Ajouté au journal ✓"); if(currentView==="today") renderToday();
+}
+function delJournal(id){ const tk=todayKey(); S.journal[tk]=(S.journal[tk]||[]).filter(e=>e.id!==id); save(); renderToday(); }
 
 /* ---- Rappels / notifications ---- */
 let reminderTimers=[];

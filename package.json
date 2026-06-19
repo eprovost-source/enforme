@@ -1,0 +1,13 @@
+{
+  "name": "enforme",
+  "version": "1.0.0",
+  "description": "PWA de remise en forme — entraînement, diète, suivi du poids, journal photo par IA.",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.105.0"
+  }
+}
