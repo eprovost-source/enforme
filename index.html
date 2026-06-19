@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+  <meta name="theme-color" content="#0f1115">
+  <title>EnForme — Éric</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="EnForme">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <h1><span class="logo-dot">🔥</span> EnForme</h1>
+    <div class="sub" id="headerSub">Objectif 205 → 180 lbs</div>
+  </header>
+
+  <main>
+    <!-- AUJOURD'HUI -->
+    <section id="view-today" class="view active"></section>
+    <!-- CALENDRIER -->
+    <section id="view-cal" class="view"></section>
+    <!-- ENTRAÎNEMENT -->
+    <section id="view-train" class="view"></section>
+    <!-- DIÈTE -->
+    <section id="view-diet" class="view"></section>
+    <!-- SUIVI -->
+    <section id="view-track" class="view"></section>
+  </main>
+
+  <nav class="tabbar">
+    <button class="tab active" data-view="today"><span class="i">🏠</span>Aujourd'hui</button>
+    <button class="tab" data-view="cal"><span class="i">📅</span>Calendrier</button>
+    <button class="tab" data-view="train"><span class="i">🏋️</span>Exos</button>
+    <button class="tab" data-view="diet"><span class="i">🍽️</span>Diète</button>
+    <button class="tab" data-view="track"><span class="i">📊</span>Suivi</button>
+  </nav>
+
+  <div class="modal-back" id="modalBack">
+    <div class="modal" id="modal"></div>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

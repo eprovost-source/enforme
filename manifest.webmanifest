@@ -1,0 +1,15 @@
+{
+  "name": "EnForme — Éric",
+  "short_name": "EnForme",
+  "description": "Programme d'entraînement, diète, suivi du poids et rappels.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f1115",
+  "theme_color": "#0f1115",
+  "lang": "fr",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
