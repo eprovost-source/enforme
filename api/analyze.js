@@ -44,13 +44,13 @@ const SCHEMA = {
   additionalProperties: false
 };
 
-const SYSTEM = `Tu es un nutritionniste qui estime l'apport nutritionnel d'un repas à partir d'une photo.
+const SYSTEM = `Tu es un nutritionniste qui estime l'apport nutritionnel d'un repas à partir d'une photo OU d'une description écrite.
 Règles :
-- Identifie chaque aliment visible et estime sa portion d'après les repères visuels (assiette, ustensiles).
+- Identifie chaque aliment et estime sa portion (repères visuels sur photo; quantités décrites ou portions usuelles pour du texte).
 - Donne pour chaque aliment : nom (français), portion, calories (kcal) et protéines (g).
 - Calcule totalKcal et totalProtein comme la somme des items.
-- Les estimations à partir d'une photo sont approximatives (±15-20 %). Indique ton niveau de confiance.
-- Si la photo ne contient pas de nourriture identifiable, renvoie items=[], totals=0, confidence="faible" et explique-le dans note.
+- Les estimations sont approximatives (±15-20 %). Indique ton niveau de confiance.
+- Si rien d'identifiable (photo sans nourriture, ou description sans aliment), renvoie items=[], totals=0, confidence="faible" et explique-le dans note.
 - Reste concis. Réponds uniquement avec les données demandées.`;
 
 module.exports = async (req, res) => {
@@ -65,23 +65,28 @@ module.exports = async (req, res) => {
   }
   try {
     const body = typeof req.body === "string" ? JSON.parse(req.body) : (req.body || {});
-    const { image, mediaType, note } = body;
-    if (!image) { res.status(400).json({ error: "Aucune image reçue" }); return; }
+    const { image, mediaType, text, note } = body;
+    if (!image && !(text && String(text).trim())) {
+      res.status(400).json({ error: "Aucune image ni description reçue" }); return;
+    }
 
-    const userText = "Estime les calories et protéines de ce repas."
-      + (note ? ` Précision de l'utilisateur : ${String(note).slice(0, 300)}` : "");
+    const content = [];
+    let userText;
+    if (image) {
+      content.push({ type: "image", source: { type: "base64", media_type: mediaType || "image/jpeg", data: image } });
+      userText = "Estime les calories et protéines de ce repas."
+        + (note ? ` Précision de l'utilisateur : ${String(note).slice(0, 300)}` : "");
+    } else {
+      userText = "Voici la description de ce que j'ai mangé : « " + String(text).trim().slice(0, 600)
+        + " ». Estime les calories et protéines.";
+    }
+    content.push({ type: "text", text: userText });
 
     const response = await getClient().messages.create({
       model: MODEL,
       max_tokens: 1024,
       system: SYSTEM,
-      messages: [{
-        role: "user",
-        content: [
-          { type: "image", source: { type: "base64", media_type: mediaType || "image/jpeg", data: image } },
-          { type: "text", text: userText }
-        ]
-      }],
+      messages: [{ role: "user", content }],
       output_config: { format: { type: "json_schema", schema: SCHEMA } }
     });
 

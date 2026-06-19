@@ -196,8 +196,11 @@ function renderToday(){
     });
     html += `</div>`;
   }
-  html += `<button class="btn-accent btn-block mt" onclick="capturePhoto()">📸 Photographier un repas hors plan</button>
-    <div class="muted small mt center">Coche tes repas du plan ci-dessus, ou photographie un repas hors plan (estimation IA ±15-20 %).</div>
+  html += `<div class="row mt" style="gap:8px">
+      <button class="btn-accent" style="flex:1" onclick="capturePhoto()">📸 Photo</button>
+      <button class="btn-accent" style="flex:1" onclick="describeMeal()">✍️ Décrire</button>
+    </div>
+    <div class="muted small mt center">Coche tes repas du plan, ou ajoute un repas hors plan par photo ou en texte (estimation IA ±15-20 %).</div>
   </div>`;
 
   // Eau
@@ -604,19 +607,33 @@ function downscale(dataUrl, maxEdge, cb){
   img.onerror = () => toast("Impossible de lire l'image");
   img.src = dataUrl;
 }
-function analyzeMeal(base64, mediaType){
-  openModal(`<h3>📷 Analyse en cours…</h3>
+function sendAnalyze(payload){
+  openModal(`<h3>🤖 Analyse en cours…</h3>
     <div class="center mt mb"><div class="muted">L'IA estime les calories et protéines…</div></div>
     <div class="bar"><span style="width:100%;animation:fade 1s infinite alternate"></span></div>`);
   fetch("/api/analyze", {
     method:"POST", headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({ image: base64, mediaType })
+    body: JSON.stringify(payload)
   }).then(r => r.json().then(d => ({ok:r.ok, d})))
     .then(({ok,d}) => {
       if(!ok || d.error){ showAnalyzeError(d.error || "Erreur inconnue"); return; }
       showEstimate(d);
     })
     .catch(() => showAnalyzeError("Pas de connexion au serveur d'analyse. (Disponible une fois l'app déployée avec la clé API.)"));
+}
+function analyzeMeal(base64, mediaType){ sendAnalyze({ image: base64, mediaType }); }
+function describeMeal(){
+  openModal(`<h3>✍️ Décris ton repas</h3>
+    <div class="muted small mb">Ex. « 2 rôties avec beurre d'arachide et une banane », ou « bol de poulet, riz, brocoli ».</div>
+    <textarea id="mealDesc" rows="3" style="width:100%;font-size:16px;padding:11px;border-radius:12px;border:1px solid var(--line);background:var(--bg2);color:var(--txt)" placeholder="Ce que tu viens de manger…"></textarea>
+    <button class="btn-accent btn-block mt" onclick="submitDescription()">Estimer</button>
+    <button class="btn-ghost btn-block mt" onclick="closeModal()">Annuler</button>`);
+  setTimeout(()=>{ const t=$("#mealDesc"); if(t) t.focus(); }, 100);
+}
+function submitDescription(){
+  const t = $("#mealDesc"); const v = t ? t.value.trim() : "";
+  if(!v){ toast("Écris ce que tu as mangé"); return; }
+  sendAnalyze({ text: v });
 }
 function showAnalyzeError(msg){
   openModal(`<h3>😕 Analyse impossible</h3><div class="muted mt mb">${esc(msg)}</div>
