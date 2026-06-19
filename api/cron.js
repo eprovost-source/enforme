@@ -3,8 +3,15 @@
 const webpush = require("web-push");
 
 const VAPID_PUBLIC = "BKINw1ltiFH2akUeaneCzPzMGrMJXUPkGp9hFvqO7xsts3AYhj4ixra-hSGhmBMhzGdVnWTiRG0KAcDdHckMRMA";
-const KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+function resolveKV() {
+  const e = process.env;
+  const find = re => { for (const k of Object.keys(e)) if (re.test(k) && e[k]) return e[k]; return undefined; };
+  const url = e.KV_REST_API_URL || e.UPSTASH_REDIS_REST_URL || find(/(KV_REST_API_URL|UPSTASH_REDIS_REST_URL)$/);
+  const token = e.KV_REST_API_TOKEN || e.UPSTASH_REDIS_REST_TOKEN || find(/(KV_REST_API_TOKEN|UPSTASH_REDIS_REST_TOKEN)$/);
+  return { url, token };
+}
+const KV = resolveKV();
+const KV_URL = KV.url, KV_TOKEN = KV.token;
 const KEY = "enforme:subs";
 
 async function kv(cmd) {
