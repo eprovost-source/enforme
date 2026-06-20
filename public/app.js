@@ -16,6 +16,7 @@ function loadState(){
   s.mealOverrides = s.mealOverrides || {}; // { 'jour-type': { idx: 'label' } }
   s.journal = s.journal || {};        // { 'YYYY-MM-DD': [{id,name,quantity,kcal,protein}] }
   s.ozempic = s.ozempic || [];        // [{date,dose,note}]
+  s.coachReport = s.coachReport || null; // { week, date, text }
   return s;
 }
 let S = loadState();
@@ -452,7 +453,8 @@ function renderTrack(){
   const days = Math.max(1, Math.round((Date.now()-sd.getTime())/86400000));
   const perWeek = (lost/days*7);
 
-  let html = weeklyReview();
+  let html = coachSection();
+  html += weeklyReview();
   html += `<h2 class="section-title">📊 Suivi du poids</h2>
   <div class="kpi-grid">
     <div class="kpi"><div class="num">${w}</div><div class="lab">Actuel (lb)</div></div>
@@ -537,20 +539,66 @@ function dayEaten(dk){
   j.forEach(e=>{ k+=e.kcal||0; pr+=e.protein||0; logged=true; });
   return { kcal:k, protein:pr, logged, workout: !!checks.workout };
 }
-function weeklyReview(){
+function weeklyStats(){
   const dates=lastNDates(7);
   const data=dates.map(dayEaten);
   const loggedDays=data.filter(x=>x.logged);
   const avgK=loggedDays.length?Math.round(loggedDays.reduce((s,x)=>s+x.kcal,0)/loggedDays.length):0;
   const avgP=loggedDays.length?Math.round(loggedDays.reduce((s,x)=>s+x.protein,0)/loggedDays.length):0;
   const workouts=data.filter(x=>x.workout).length;
-  // variation de poids sur ~7 jours
   let wDelta=null;
   if(S.weights.length>=1){
     const cutoff=dates[0]; const recent=currentWeight();
     const old=S.weights.filter(e=>e.date<cutoff).slice(-1)[0] || S.weights[0];
-    if(old) wDelta=recent-old.lbs;
+    if(old) wDelta=Math.round((recent-old.lbs)*10)/10;
   }
+  const lastOz=S.ozempic.slice().sort((a,b)=>a.date<b.date?1:-1)[0]||null;
+  return { dates, data, loggedDays:loggedDays.length, avgK, avgP, workouts, wDelta,
+    kcalTarget:S.settings.kcalTarget, protTarget:S.settings.proteinTarget,
+    poids:{ depart:S.settings.startWeight, actuel:currentWeight(), cible:S.settings.goalWeight, perduTotal:Math.round((S.settings.startWeight-currentWeight())*10)/10 },
+    ozempic: lastOz?{ dose:lastOz.dose, derniere:lastOz.date, ressenti:lastOz.note||"" }:null };
+}
+function coachSection(){
+  const r = S.coachReport;
+  const thisWeek = isoWeek(new Date());
+  const fresh = r && r.week === thisWeek;
+  let html = `<h2 class="section-title">🤖 Coach de la semaine</h2><div class="card">`;
+  if(r && r.text){
+    html += `<div style="white-space:pre-wrap;line-height:1.5">${esc(r.text)}</div>
+      <div class="muted small mt">${fresh?"Généré cette semaine":"Généré le "+esc(frFullDate(r.date))} · à partir de tes données</div>
+      <button class="btn-ghost btn-block mt" onclick="genCoach()">↻ Régénérer</button>`;
+  } else {
+    html += `<div class="muted small mb">Ton coach analyse ta semaine (calories, séances, poids, Ozempic) et te donne un bilan + des conseils concrets.</div>
+      <button class="btn-accent btn-block" onclick="genCoach()">✨ Générer mon bilan</button>`;
+  }
+  html += `</div>`;
+  return html;
+}
+function genCoach(){
+  if(!authToken){ toast("Connecte-toi d'abord"); return; }
+  const stats = weeklyStats();
+  const payload = { stats: {
+    poids: stats.poids, kcalMoyenne: stats.avgK, kcalCible: stats.kcalTarget,
+    proteinesMoyenne: stats.avgP, proteinesCible: stats.protTarget,
+    seances7j: stats.workouts, joursSuivis: stats.loggedDays,
+    variationPoids7j: stats.wDelta, ozempic: stats.ozempic
+  }};
+  openModal(`<h3>🤖 Ton coach réfléchit…</h3>
+    <div class="center mt mb"><div class="muted">Analyse de ta semaine en cours…</div></div>
+    <div class="bar"><span style="width:100%;animation:fade 1s infinite alternate"></span></div>`);
+  fetch("/api/coach", { method:"POST", headers: Object.assign({"Content-Type":"application/json"}, authHeaders()), body: JSON.stringify(payload) })
+    .then(r => r.json().then(d => ({ok:r.ok, d})))
+    .then(({ok,d}) => {
+      if(!ok || d.error || !d.text){ closeModal(); toast(d.error || "Échec de la génération"); return; }
+      S.coachReport = { week: isoWeek(new Date()), date: todayKey(), text: d.text };
+      save(); closeModal(); if(currentView==="track") renderTrack();
+    })
+    .catch(()=>{ closeModal(); toast("Pas de connexion au serveur coach"); });
+}
+function weeklyReview(){
+  const st=weeklyStats();
+  const dates=st.dates, data=st.data;
+  const avgK=st.avgK, avgP=st.avgP, workouts=st.workouts, wDelta=st.wDelta, loggedDays={length:st.loggedDays};
   const kColor=avgK<=S.settings.kcalTarget?"var(--green)":"var(--accent2)";
   const pColor=avgP>=S.settings.proteinTarget?"var(--green)":"var(--accent2)";
   return `<h2 class="section-title">📈 Bilan de la semaine</h2>
