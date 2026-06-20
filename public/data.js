@@ -169,14 +169,14 @@ const SNACKS = [
 ];
 // Bols batch (dîner / souper) — tout vient du batch du dimanche, juste à réchauffer.
 const BOWLS = [
-  { title: "🍗 Bol poulet BBQ", items: ["poulet BBQ (180 g)", "riz ¾ t", "brocoli + chou-fleur rôtis", "filet d'huile d'olive"], kcal: 520, prot: 52, reheat: "Micro-ondes : poulet + légumes 2-3 min, riz 1 min (ou poêle 4 min)." },
-  { title: "🥩 Bol bœuf tex-mex", items: ["bœuf haché tex-mex (180 g)", "quinoa ¾ t", "courgette + poivrons sautés"], kcal: 540, prot: 46, reheat: "Poêle 4-5 min (bœuf + légumes); quinoa au micro-ondes 1 min." },
-  { title: "🐷 Assiette porc + patate douce", items: ["porc rôti tranché (180 g)", "patate douce rôtie", "carottes rôties"], kcal: 540, prot: 48, reheat: "Micro-ondes 2-3 min, couvert (garde le porc juteux)." },
-  { title: "🍗 Sauté poulet asiatique", items: ["poulet (180 g)", "courgette + poivrons", "sauce soya-gingembre", "riz ¾ t"], kcal: 510, prot: 52, reheat: "Poêle 4 min avec un filet de sauce soya; riz 1 min." },
-  { title: "🥩 Bol bœuf + patate douce", items: ["bœuf haché (180 g)", "patate douce rôtie", "brocoli rôti"], kcal: 530, prot: 46, reheat: "Micro-ondes 2-3 min, ou poêle 4 min." },
-  { title: "🐷 Porc BBQ + légumes", items: ["porc rôti tranché (180 g)", "brocoli + chou-fleur rôtis", "riz ¾ t"], kcal: 540, prot: 48, reheat: "Micro-ondes 2-3 min, couvert." },
-  { title: "🍗 Poulet + carottes + quinoa", items: ["poulet BBQ (180 g)", "carottes rôties", "quinoa ¾ t"], kcal: 500, prot: 52, reheat: "Micro-ondes 2 min; quinoa 1 min." },
-  { title: "🥩 Bol bœuf asiatique", items: ["bœuf haché (160 g)", "courgette + poivrons", "sauce soya-gingembre", "riz ¾ t"], kcal: 520, prot: 44, reheat: "Poêle 4 min avec sauce soya; riz 1 min." }
+  { title: "🍗 Bol poulet BBQ", items: ["Poulet BBQ — 180 g", "Riz cuit — ¾ tasse", "Brocoli + chou-fleur rôtis — 1 ½ tasse", "Huile d'olive — 1 c. à thé"], kcal: 520, prot: 52, reheat: "Micro-ondes : poulet + légumes 2-3 min, riz 1 min (ou poêle 4 min)." },
+  { title: "🥩 Bol bœuf tex-mex", items: ["Bœuf haché tex-mex — 180 g", "Quinoa cuit — ¾ tasse", "Courgette + poivrons sautés — 1 ½ tasse"], kcal: 540, prot: 46, reheat: "Poêle 4-5 min (bœuf + légumes); quinoa au micro-ondes 1 min." },
+  { title: "🐷 Assiette porc + patate douce", items: ["Porc rôti tranché — 180 g", "Patate douce rôtie — 1 moyenne (~150 g)", "Carottes rôties — 1 tasse"], kcal: 540, prot: 48, reheat: "Micro-ondes 2-3 min, couvert (garde le porc juteux)." },
+  { title: "🍗 Sauté poulet asiatique", items: ["Poulet — 180 g", "Courgette + poivrons — 1 ½ tasse", "Sauce soya-gingembre — 1 c. à s.", "Riz cuit — ¾ tasse"], kcal: 510, prot: 52, reheat: "Poêle 4 min avec un filet de sauce soya; riz 1 min." },
+  { title: "🥩 Bol bœuf + patate douce", items: ["Bœuf haché — 180 g", "Patate douce rôtie — 1 moyenne (~150 g)", "Brocoli rôti — 1 ½ tasse"], kcal: 530, prot: 46, reheat: "Micro-ondes 2-3 min, ou poêle 4 min." },
+  { title: "🐷 Porc BBQ + légumes", items: ["Porc rôti tranché — 180 g", "Brocoli + chou-fleur rôtis — 1 ½ tasse", "Riz cuit — ¾ tasse"], kcal: 540, prot: 48, reheat: "Micro-ondes 2-3 min, couvert." },
+  { title: "🍗 Poulet + carottes + quinoa", items: ["Poulet BBQ — 180 g", "Carottes rôties — 1 tasse", "Quinoa cuit — ¾ tasse"], kcal: 500, prot: 52, reheat: "Micro-ondes 2 min; quinoa 1 min." },
+  { title: "🥩 Bol bœuf asiatique", items: ["Bœuf haché — 160 g", "Courgette + poivrons — 1 ½ tasse", "Sauce soya-gingembre — 1 c. à s.", "Riz cuit — ¾ tasse"], kcal: 520, prot: 44, reheat: "Poêle 4 min avec sauce soya; riz 1 min." }
 ];
 
 // Plan 7 jours : index dans BREAKFASTS / SNACKS / BOWLS (dîner+souper = bols batch)
@@ -230,20 +230,20 @@ const BATCH_PREP = {
   title: "Dimanche — prépare tout (~1h30)",
   intro: "Quantités pour la maisonnée (6) : tu cuis les bases une fois, ça nourrit la famille. Ton assiette à toi reste une portion individuelle (~180 g de protéine).",
   steps: [
-    "Préchauffe le four à 200 °C (400 °F). Sors 2 grandes plaques.",
-    "POULET BBQ : badigeonne 6-8 poitrines d'huile, assaisonne au paprika fumé + ail + épices BBQ. Plaque 1.",
-    "PORC : frotte 1-2 filets/longes d'huile + ail + herbes (sel, poivre). Plaque 1 aussi (ou 2e plaque).",
-    "Enfourne poulet + porc 22-28 min (74 °C à cœur). Laisse reposer 5 min, tranche, range en contenants.",
-    "LÉGUMES : sur une plaque, brocoli + chou-fleur; sur une autre, carottes. Huile + sel. Rôtis 20-25 min.",
-    "BŒUF TEX-MEX : dans un grand chaudron, fais revenir 1 oignon, ajoute 3-4 lbs de bœuf haché, cumin + paprika + chili (sans tomate). Cuis, égoutte le gras.",
-    "SAUTÉ DE LÉGUMES : poêle courgette + poivrons + oignon 6-8 min, garde croquant.",
-    "FÉCULENTS : cuis un gros plat de riz + un de quinoa. Rôtis aussi 6-8 patates douces en cubes.",
-    "Refroidis, puis range tout en contenants par composante. Conserve 4 jours au frigo (congèle le surplus)."
+    "Préchauffe le four à 200 °C (400 °F). Sors 3-4 plaques.",
+    "POULET BBQ — 10-12 poitrines : enrobe de 3 c. à s. d'huile + 3 c. à s. d'épices BBQ + 1 c. à s. paprika fumé + ail. Étale sur 2 plaques.",
+    "PORC — 2 longes (~2 kg) : frotte de 2 c. à s. d'huile + 4 gousses d'ail + herbes + sel/poivre. 1 plaque.",
+    "Enfourne poulet + porc 22-28 min (poulet 74 °C, porc 63-65 °C). Repos 5 min, tranche, range.",
+    "LÉGUMES RÔTIS : 2 brocolis + 1 chou-fleur sur 1 plaque, 1 sac de carottes sur 1 autre. 3 c. à s. d'huile + sel. Rôtis 20-25 min à 220 °C.",
+    "BŒUF TEX-MEX — 4 lbs : fais revenir 1 gros oignon, ajoute le bœuf, cuis, égoutte. Ajoute 2 c. à s. cumin + 1 c. à s. paprika + 1-2 c. à thé chili (sans tomate).",
+    "SAUTÉ ASIATIQUE : 4-5 courgettes + 6 poivrons + 2 oignons à la poêle 6-8 min, puis 3 c. à s. soya + 2 c. à s. gingembre + ail.",
+    "FÉCULENTS : 3 tasses de riz cru + 2 tasses de quinoa cru (cuits). 6-8 patates douces en cubes au four 20-25 min.",
+    "Refroidis et range par composante. 4 jours au frigo (congèle le surplus)."
   ],
   refresh: { title: "Mercredi — petit rafraîchissement (~20 min)", steps: [
-    "Refais du riz ou du quinoa frais.",
-    "Rôtis une nouvelle plaque de légumes (brocoli/chou-fleur ou carottes).",
-    "Au besoin, cuis une protéine de plus (poulet ou porc) pour finir la semaine." ] }
+    "Refais 2 tasses de riz cru OU 1 tasse de quinoa cru, frais.",
+    "Rôtis 1 nouvelle plaque de légumes (1 brocoli + 1 chou-fleur, ou 1 sac de carottes).",
+    "Au besoin, cuis 4-5 poitrines de poulet de plus pour finir la semaine." ] }
 };
 
 // ---- Réglages par défaut ------------------------------------------------
@@ -266,45 +266,54 @@ const DEFAULTS = {
 // Doses Ozempic (titration habituelle — suivi par le médecin)
 const OZEMPIC_DOSES = ["0,25 mg", "0,5 mg", "1,0 mg", "1,7 mg", "2,0 mg"];
 
-// Recettes détaillées des composantes batch
+// Recettes détaillées des composantes batch — QUANTITÉS POUR LA MAISONNÉE (6)
 const RECIPES = [
-  { id: "poulet_bbq", emoji: "🍗", title: "Poulet BBQ au four (batch)", time: "~30 min", yield: "6-8 poitrines",
-    ingredients: ["6-8 poitrines de poulet", "Huile d'olive (2 c. à s.)", "Paprika fumé + ail", "Mélange BBQ sans sucre, sel, poivre"],
+  { id: "poulet_bbq", emoji: "🍗", title: "Poulet BBQ au four (batch)", time: "~30 min", yield: "Pour 6 · ~10-12 poitrines",
+    ingredients: ["10-12 poitrines de poulet (≈ 4-5 kg)", "3 c. à s. d'huile d'olive", "3 c. à s. de mélange BBQ sans sucre", "1 c. à s. de paprika fumé", "4 gousses d'ail (ou 1 c. à thé d'ail en poudre)", "1 c. à thé de sel, ½ c. à thé de poivre"],
     steps: [
       "Préchauffe le four à 200 °C (400 °F).",
-      "Badigeonne le poulet d'huile, frotte généreusement d'épices BBQ + paprika fumé + ail.",
-      "Plaque en une seule couche, cuis 22-28 min (74 °C à cœur).",
-      "Repos 5 min, tranche. Range en contenants — 4 jours au frigo." ] },
-  { id: "porc", emoji: "🐷", title: "Porc rôti (batch)", time: "~30 min", yield: "2 filets/longes",
-    ingredients: ["1-2 filets ou longes de porc", "Huile d'olive", "Ail, herbes, sel, poivre"],
+      "Dans un grand bol, mélange l'huile + toutes les épices.",
+      "Enrobe les poitrines, étale sur 2 plaques (une seule couche).",
+      "Cuis 22-28 min (74 °C à cœur).",
+      "Repos 5 min, tranche. Range en contenants — 4 jours au frigo (congèle le surplus)." ] },
+  { id: "porc", emoji: "🐷", title: "Porc rôti (batch)", time: "~30 min", yield: "Pour 6 · 2 longes (~2 kg)",
+    ingredients: ["2 longes ou filets de porc (~2 kg)", "2 c. à s. d'huile d'olive", "4 gousses d'ail émincées", "1 c. à s. d'herbes (thym/romarin)", "1 c. à thé de sel, ½ c. à thé de poivre"],
     steps: [
-      "Four à 200 °C (400 °F). Frotte le porc d'huile + ail + herbes.",
-      "Rôtis 22-28 min (63-65 °C à cœur pour le filet, juteux).",
+      "Four à 200 °C (400 °F). Mélange huile + ail + herbes + sel + poivre.",
+      "Frotte les longes partout, dépose sur une plaque.",
+      "Rôtis 22-28 min (63-65 °C à cœur pour le filet — juteux).",
       "Repos 5 min IMPORTANT, puis tranche fin.",
-      "Range en contenants — réchauffe couvert pour garder moelleux." ] },
-  { id: "boeuf_texmex", emoji: "🥩", title: "Bœuf haché tex-mex (batch, sans tomate)", time: "~20 min", yield: "3-4 lbs",
-    ingredients: ["3-4 lbs bœuf haché maigre", "1 oignon haché", "Ail", "Cumin + paprika + poudre de chili", "Sel, poivre"],
+      "Réchauffe toujours couvert pour garder moelleux." ] },
+  { id: "boeuf_texmex", emoji: "🥩", title: "Bœuf haché tex-mex (batch, sans tomate)", time: "~20 min", yield: "Pour 6 · 4 lbs",
+    ingredients: ["4 lbs (1,8 kg) de bœuf haché maigre", "1 gros oignon haché", "4 gousses d'ail", "2 c. à s. de cumin", "1 c. à s. de paprika", "1-2 c. à thé de poudre de chili", "1 c. à thé de sel"],
     steps: [
       "Fais revenir l'oignon 3 min dans un grand chaudron.",
-      "Ajoute le bœuf, défais-le, cuis jusqu'à plus rosé.",
-      "Égoutte le gras. Assaisonne cumin + paprika + chili (pas de tomate).",
+      "Ajoute le bœuf, défais-le à la cuillère, cuis jusqu'à plus rosé.",
+      "Égoutte le gras. Ajoute ail + cumin + paprika + chili + sel (pas de tomate).",
       "Mijote 3-4 min. Pour bols et wraps. 4 jours au frigo." ] },
-  { id: "legumes", emoji: "🥦", title: "Légumes rôtis (batch)", time: "~25 min", yield: "2 plaques",
-    ingredients: ["Brocoli, chou-fleur, carottes", "Huile d'olive", "Sel, poivre, ail"],
+  { id: "legumes", emoji: "🥦", title: "Légumes rôtis (batch)", time: "~25 min", yield: "Pour 6 · 2 plaques",
+    ingredients: ["2 têtes de brocoli + 1 chou-fleur (en bouquets)", "1 sac de carottes (~1 kg, en bâtonnets)", "3 c. à s. d'huile d'olive", "1 c. à thé de sel, ail, poivre"],
     steps: [
       "Four à 220 °C (425 °F). Coupe en morceaux réguliers.",
       "Brocoli + chou-fleur sur une plaque; carottes sur l'autre.",
-      "Huile + assaisonnements, une seule couche.",
-      "Rôtis 20-25 min en remuant à mi-cuisson. 4-5 jours." ] },
-  { id: "saute_asia", emoji: "🥢", title: "Sauté de légumes asiatique (batch)", time: "~10 min", yield: "Grande poêlée",
-    ingredients: ["Courgette + poivrons + oignon", "Sauce soya légère", "Gingembre + ail", "Filet d'huile"],
+      "Mélange chaque plaque avec ~1,5 c. à s. d'huile + assaisonnements, une seule couche.",
+      "Rôtis 20-25 min en remuant à mi-cuisson. 4-5 jours au frigo." ] },
+  { id: "saute_asia", emoji: "🥢", title: "Sauté de légumes asiatique (batch)", time: "~10 min", yield: "Pour 6 · grande poêlée",
+    ingredients: ["4-5 courgettes en demi-lunes", "6 poivrons en lanières", "2 oignons", "3 c. à s. de sauce soya légère", "2 c. à s. de gingembre râpé", "3 gousses d'ail", "1 c. à s. d'huile"],
     steps: [
-      "Chauffe une grande poêle à feu vif avec un filet d'huile.",
-      "Ajoute oignon, poivrons, courgette; saute 6-8 min (garde croquant).",
-      "Ail + gingembre + filet de sauce soya, 1 min de plus.",
+      "Chauffe une grande poêle à feu vif avec l'huile.",
+      "Ajoute oignons, poivrons, courgettes; saute 6-8 min (garde croquant).",
+      "Ajoute ail + gingembre + sauce soya, 1 min de plus.",
       "Parfait avec poulet ou bœuf + riz." ] },
+  { id: "feculents", emoji: "🍚", title: "Riz, quinoa & patates douces (batch)", time: "~30 min", yield: "Pour 6 · la semaine",
+    ingredients: ["3 tasses de riz cru", "2 tasses de quinoa cru", "6-8 patates douces en cubes", "Huile, sel"],
+    steps: [
+      "Riz : cuis 3 tasses crues selon le paquet (≈ 9 tasses cuites).",
+      "Quinoa : rince, cuis 2 tasses crues (≈ 6 tasses cuites).",
+      "Patates douces : cubes + filet d'huile + sel, au four 220 °C 20-25 min.",
+      "Refroidis et range séparément. Riz/quinoa 4-5 jours." ] },
   { id: "pancakes", emoji: "🥞", title: "Pancakes protéinés", time: "~10 min", yield: "1 portion",
-    ingredients: ["1 banane", "2 œufs", "1 dose protéine en poudre", "⅓ tasse flocons d'avoine", "Fraises"],
+    ingredients: ["1 banane", "2 œufs", "1 dose de protéine en poudre", "⅓ tasse de flocons d'avoine", "Fraises"],
     steps: [
       "Écrase la banane, mélange avec œufs, protéine et avoine.",
       "Laisse reposer 2 min (l'avoine épaissit).",
