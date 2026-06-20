@@ -321,12 +321,14 @@ function renderDiet(){
   if(!dietDay) dietDay = todayName();
   let html = `<div class="row wrap" style="gap:8px;margin:6px 0">
     <button class="${dietTab==='repas'?'btn-accent':'btn-ghost'} btn-sm" onclick="setDietTab('repas')">🍽️ Repas</button>
+    <button class="${dietTab==='planifier'?'btn-accent':'btn-ghost'} btn-sm" onclick="setDietTab('planifier')">🗓️ Planifier</button>
     <button class="${dietTab==='epicerie'?'btn-accent':'btn-ghost'} btn-sm" onclick="setDietTab('epicerie')">🛒 Épicerie</button>
     <button class="${dietTab==='batch'?'btn-accent':'btn-ghost'} btn-sm" onclick="setDietTab('batch')">🍳 Batch</button>
     <button class="${dietTab==='recettes'?'btn-accent':'btn-ghost'} btn-sm" onclick="setDietTab('recettes')">📖 Recettes</button>
   </div>`;
 
   if(dietTab==="repas") html += dietRepas();
+  else if(dietTab==="planifier") html += dietPlanner();
   else if(dietTab==="epicerie") html += dietEpicerie();
   else if(dietTab==="recettes") html += dietRecettes();
   else html += dietBatch();
@@ -357,9 +359,24 @@ function dietRepas(){
   return html;
 }
 function dietEpicerie(){
-  let html = `<h2 class="section-title">🛒 Épicerie — pour la maisonnée (6)</h2>
-    <div class="card row between"><div class="muted small">Quantités pour 6 (tes portions à toi restent individuelles). Coche au fur et à mesure.</div>
+  const hh = S.settings.household || 6;
+  let html = `<h2 class="section-title">🛒 Épicerie — pour la maisonnée (${hh})</h2>
+    <div class="card row between"><div class="muted small">Tes portions restent individuelles. Coche au fur et à mesure.</div>
     <button class="btn-ghost btn-sm" onclick="resetGrocery()">Tout décocher</button></div>`;
+  // Liste générée à partir de TON plan de la semaine (dîner + souper)
+  const g = genBatchNeeds();
+  const genSec = (title, arr) => {
+    if(!arr.length) return "";
+    let s = `<div class="card gro-sec"><h4>${title} <span class="muted small">(selon ton plan)</span></h4>`;
+    arr.forEach(it=>{ const done=S.grocery[it];
+      s += `<label class="gro-item ${done?'done':''}"><input type="checkbox" ${done?"checked":""} onchange="toggleGrocery(this,'${esc(it).replace(/'/g,"\\'")}')"><span>${esc(it)}</span></label>`; });
+    return s + `</div>`;
+  };
+  html += `<div class="muted small" style="margin:4px">🗓️ Calculé pour 7 dîners + 7 soupers × ${hh} personnes. Si moins de gens mangent le batch, baisse « Personnes » dans Suivi → Objectifs.</div>`;
+  html += genSec("🥩 Protéines (batch)", g.prot);
+  html += genSec("🍚 Féculents (batch)", g.feculents);
+  html += genSec("🥦 Légumes (batch)", g.legumes);
+  html += `<h2 class="section-title">Le reste (déjeuners, collations, extras)</h2>`;
   GROCERY.forEach(sec=>{
     html += `<div class="card gro-sec"><h4>${esc(sec.section)}</h4>`;
     sec.items.forEach(it=>{
@@ -417,6 +434,56 @@ function openRecipe(id){
   r.steps.forEach((s,i)=> html += `<div class="ing"><span><strong style="color:var(--accent2)">${i+1}.</strong> ${esc(s)}</span></div>`);
   html += `</div><button class="btn-ghost btn-block mt" onclick="closeModal()">Fermer</button>`;
   openModal(html);
+}
+
+/* ---- Planificateur de semaine ---- */
+function setMeal(day,type,idx){ S.mealOverrides[day+"-"+type] = parseInt(idx,10); save(); renderDiet(); }
+function dietPlanner(){
+  let html = `<h2 class="section-title">🗓️ Planifie tes bols (dîner + souper)</h2>
+    <div class="muted small" style="margin:0 4px 8px">Choisis un bol pour chaque repas. L'app génère ensuite l'épicerie et les quantités batch.</div>`;
+  DAYS.forEach(dn=>{
+    html += `<div class="card"><strong>${DAY_LABEL[dn]}</strong>`;
+    ["diner","souper"].forEach(type=>{
+      const cur = activeIndex(dn,type);
+      const opts = BOWLS.map((b,i)=>`<option value="${i}" ${i===cur?"selected":""}>${esc(b.title)} · ${b.kcal} kcal</option>`).join("");
+      html += `<label class="set-row">${type==="diner"?"🍽️ Dîner":"🌙 Souper"}<select onchange="setMeal('${dn}','${type}',this.value)" style="max-width:62%">${opts}</select></label>`;
+    });
+    html += `</div>`;
+  });
+  html += `<button class="btn-accent btn-block mt" onclick="setDietTab('epicerie')">🛒 Voir l'épicerie générée</button>`;
+  return html;
+}
+// Génère les quantités batch (dîner+souper de la semaine) pour la maisonnée
+function genBatchNeeds(){
+  const hh = S.settings.household || 6;
+  const prot = { poulet:0, boeuf:0, porc:0 };        // grammes cuits
+  const carb = { riz:0, quinoa:0, patate:0 };        // riz/quinoa en tasses cuites, patate en nb
+  const veg  = { bc:0, cp:0, ca:0 };                 // tasses
+  DAYS.forEach(dn=>["diner","souper"].forEach(type=>{
+    const c = (activeMeal(dn,type).comp);
+    if(!c) return;
+    if(c.prot) prot[c.prot[0]] += c.prot[1];
+    if(c.carb) carb[c.carb[0]] += c.carb[1];
+    if(c.veg) veg[c.veg[0]] += c.veg[1];
+  }));
+  // × maisonnée
+  Object.keys(prot).forEach(k=>prot[k]*=hh);
+  Object.keys(carb).forEach(k=>carb[k]*=hh);
+  Object.keys(veg).forEach(k=>veg[k]*=hh);
+  const lines = [];
+  // protéines : cuit → cru (×1.35)
+  if(prot.poulet) lines.push(`Poulet — ≈ ${Math.ceil(prot.poulet*1.35/200)} poitrines (~${(prot.poulet*1.35/1000).toFixed(1)} kg cru)`);
+  if(prot.boeuf)  lines.push(`Bœuf haché maigre — ≈ ${(prot.boeuf*1.35/454).toFixed(1)} lb`);
+  if(prot.porc)   lines.push(`Porc — ≈ ${(prot.porc*1.35/1000).toFixed(1)} kg`);
+  const feculents = [];
+  if(carb.riz)    feculents.push(`Riz — ≈ ${(carb.riz/3).toFixed(1)} tasses crues`);
+  if(carb.quinoa) feculents.push(`Quinoa — ≈ ${(carb.quinoa/3).toFixed(1)} tasses crues`);
+  if(carb.patate) feculents.push(`Patates douces — ≈ ${Math.ceil(carb.patate)} unités`);
+  const legumes = [];
+  if(veg.bc) legumes.push(`Brocoli + chou-fleur — ≈ ${Math.ceil(veg.bc/4)} têtes au total`);
+  if(veg.cp) legumes.push(`Courgettes + poivrons — ≈ ${Math.ceil(veg.cp/2)} courgettes + ${Math.ceil(veg.cp/2)} poivrons`);
+  if(veg.ca) legumes.push(`Carottes — ≈ ${Math.max(1,Math.round(veg.ca/8))} sac(s)`);
+  return { hh, prot:lines, feculents, legumes };
 }
 
 /* ---- Repas : option active + bascule cohérente ---- */
@@ -494,6 +561,7 @@ function renderTrack(){
     <label class="set-row">Objectif (lb)<input type="number" step="0.1" value="${S.settings.goalWeight}" onchange="setSetting('goalWeight',this.value)"></label>
     <label class="set-row">Cible protéines (g)<input type="number" value="${S.settings.proteinTarget}" onchange="setSetting('proteinTarget',this.value)"></label>
     <label class="set-row">Cible eau (L)<input type="number" step="0.25" value="${S.settings.waterTargetL}" onchange="setSetting('waterTargetL',this.value)"></label>
+    <label class="set-row">Personnes qui mangent le batch<input type="number" min="1" step="1" value="${S.settings.household||6}" onchange="setSetting('household',this.value)"></label>
   </div>`;
 
   // Rappels

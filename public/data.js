@@ -168,15 +168,18 @@ const SNACKS = [
   { title: "Yogourt grec + miel", items: ["yogourt grec (1 t)", "filet de miel"], kcal: 250, prot: 23 }
 ];
 // Bols batch (dîner / souper) — tout vient du batch du dimanche, juste à réchauffer.
+// comp = composantes structurées (pour générer l'épicerie) :
+//   prot:[type, grammes cuits], carb:[type, tasses cuites OU 'patate':nb], veg:[code, tasses]
+//   codes veg : bc = brocoli/chou-fleur, cp = courgette/poivrons, ca = carottes
 const BOWLS = [
-  { title: "🍗 Bol poulet BBQ", items: ["Poulet BBQ — 180 g", "Riz cuit — ¾ tasse", "Brocoli + chou-fleur rôtis — 1 ½ tasse", "Huile d'olive — 1 c. à thé"], kcal: 520, prot: 52, reheat: "Micro-ondes : poulet + légumes 2-3 min, riz 1 min (ou poêle 4 min)." },
-  { title: "🥩 Bol bœuf tex-mex", items: ["Bœuf haché tex-mex — 180 g", "Quinoa cuit — ¾ tasse", "Courgette + poivrons sautés — 1 ½ tasse"], kcal: 540, prot: 46, reheat: "Poêle 4-5 min (bœuf + légumes); quinoa au micro-ondes 1 min." },
-  { title: "🐷 Assiette porc + patate douce", items: ["Porc rôti tranché — 180 g", "Patate douce rôtie — 1 moyenne (~150 g)", "Carottes rôties — 1 tasse"], kcal: 540, prot: 48, reheat: "Micro-ondes 2-3 min, couvert (garde le porc juteux)." },
-  { title: "🍗 Sauté poulet asiatique", items: ["Poulet — 180 g", "Courgette + poivrons — 1 ½ tasse", "Sauce soya-gingembre — 1 c. à s.", "Riz cuit — ¾ tasse"], kcal: 510, prot: 52, reheat: "Poêle 4 min avec un filet de sauce soya; riz 1 min." },
-  { title: "🥩 Bol bœuf + patate douce", items: ["Bœuf haché — 180 g", "Patate douce rôtie — 1 moyenne (~150 g)", "Brocoli rôti — 1 ½ tasse"], kcal: 530, prot: 46, reheat: "Micro-ondes 2-3 min, ou poêle 4 min." },
-  { title: "🐷 Porc BBQ + légumes", items: ["Porc rôti tranché — 180 g", "Brocoli + chou-fleur rôtis — 1 ½ tasse", "Riz cuit — ¾ tasse"], kcal: 540, prot: 48, reheat: "Micro-ondes 2-3 min, couvert." },
-  { title: "🍗 Poulet + carottes + quinoa", items: ["Poulet BBQ — 180 g", "Carottes rôties — 1 tasse", "Quinoa cuit — ¾ tasse"], kcal: 500, prot: 52, reheat: "Micro-ondes 2 min; quinoa 1 min." },
-  { title: "🥩 Bol bœuf asiatique", items: ["Bœuf haché — 160 g", "Courgette + poivrons — 1 ½ tasse", "Sauce soya-gingembre — 1 c. à s.", "Riz cuit — ¾ tasse"], kcal: 520, prot: 44, reheat: "Poêle 4 min avec sauce soya; riz 1 min." }
+  { title: "🍗 Bol poulet BBQ", items: ["Poulet BBQ — 180 g", "Riz cuit — ¾ tasse", "Brocoli + chou-fleur rôtis — 1 ½ tasse", "Huile d'olive — 1 c. à thé"], kcal: 520, prot: 52, reheat: "Micro-ondes : poulet + légumes 2-3 min, riz 1 min (ou poêle 4 min).", comp: { prot: ["poulet", 180], carb: ["riz", 0.75], veg: ["bc", 1.5] } },
+  { title: "🥩 Bol bœuf tex-mex", items: ["Bœuf haché tex-mex — 180 g", "Quinoa cuit — ¾ tasse", "Courgette + poivrons sautés — 1 ½ tasse"], kcal: 540, prot: 46, reheat: "Poêle 4-5 min (bœuf + légumes); quinoa au micro-ondes 1 min.", comp: { prot: ["boeuf", 180], carb: ["quinoa", 0.75], veg: ["cp", 1.5] } },
+  { title: "🐷 Assiette porc + patate douce", items: ["Porc rôti tranché — 180 g", "Patate douce rôtie — 1 moyenne (~150 g)", "Carottes rôties — 1 tasse"], kcal: 540, prot: 48, reheat: "Micro-ondes 2-3 min, couvert (garde le porc juteux).", comp: { prot: ["porc", 180], carb: ["patate", 1], veg: ["ca", 1] } },
+  { title: "🍗 Sauté poulet asiatique", items: ["Poulet — 180 g", "Courgette + poivrons — 1 ½ tasse", "Sauce soya-gingembre — 1 c. à s.", "Riz cuit — ¾ tasse"], kcal: 510, prot: 52, reheat: "Poêle 4 min avec un filet de sauce soya; riz 1 min.", comp: { prot: ["poulet", 180], carb: ["riz", 0.75], veg: ["cp", 1.5] } },
+  { title: "🥩 Bol bœuf + patate douce", items: ["Bœuf haché — 180 g", "Patate douce rôtie — 1 moyenne (~150 g)", "Brocoli rôti — 1 ½ tasse"], kcal: 530, prot: 46, reheat: "Micro-ondes 2-3 min, ou poêle 4 min.", comp: { prot: ["boeuf", 180], carb: ["patate", 1], veg: ["bc", 1.5] } },
+  { title: "🐷 Porc BBQ + légumes", items: ["Porc rôti tranché — 180 g", "Brocoli + chou-fleur rôtis — 1 ½ tasse", "Riz cuit — ¾ tasse"], kcal: 540, prot: 48, reheat: "Micro-ondes 2-3 min, couvert.", comp: { prot: ["porc", 180], carb: ["riz", 0.75], veg: ["bc", 1.5] } },
+  { title: "🍗 Poulet + carottes + quinoa", items: ["Poulet BBQ — 180 g", "Carottes rôties — 1 tasse", "Quinoa cuit — ¾ tasse"], kcal: 500, prot: 52, reheat: "Micro-ondes 2 min; quinoa 1 min.", comp: { prot: ["poulet", 180], carb: ["quinoa", 0.75], veg: ["ca", 1] } },
+  { title: "🥩 Bol bœuf asiatique", items: ["Bœuf haché — 160 g", "Courgette + poivrons — 1 ½ tasse", "Sauce soya-gingembre — 1 c. à s.", "Riz cuit — ¾ tasse"], kcal: 520, prot: 44, reheat: "Poêle 4 min avec sauce soya; riz 1 min.", comp: { prot: ["boeuf", 160], carb: ["riz", 0.75], veg: ["cp", 1.5] } }
 ];
 
 // Plan 7 jours : index dans BREAKFASTS / SNACKS / BOWLS (dîner+souper = bols batch)
@@ -203,9 +206,8 @@ const WEEK_TEMPLATE = {
 
 // ---- Liste d'épicerie (cohérente avec le plan, batch pour 6) ------------
 const GROCERY = [
-  { section: "Viandes et œufs", items: [
-    "Poitrines de poulet — 10-12 (≈ 4-5 kg)", "Bœuf haché maigre — 4 lbs",
-    "Porc (filet ou longe) — 2-3 (≈ 2 kg)", "Œufs — 3 douzaines" ] },
+  { section: "Déjeuners (œufs & co)", items: [
+    "Œufs — 3 douzaines", "Épinards — 1 sac", "Pain blé entier — 1-2", "Flocons d'avoine — 1 contenant" ] },
   { section: "Produits laitiers / frigo", items: [
     "Yogourt grec nature — 1 gros format (750 g-1 kg)", "Fromage cottage — 1 gros contenant",
     "Lait — selon la maisonnée (shakes)" ] },
@@ -213,11 +215,6 @@ const GROCERY = [
     "1 pot whey ou végétale, ~25 g/portion, faible en sucre (≈ 1 mois)" ] },
   { section: "Fruits", items: [
     "Fraises — 2-3 casseaux", "Bananes — 1 régime", "Pommes — sac" ] },
-  { section: "Légumes", items: [
-    "Brocoli — 3-4 têtes", "Chou-fleur — 2", "Courgettes — 4-5", "Poivrons — 6-8",
-    "Oignons — sac", "Carottes — 1 sac", "Patates douces — 6-8", "Épinards — 1 gros sac" ] },
-  { section: "Féculents / garde-manger", items: [
-    "Riz — 1 gros sac", "Quinoa — 1 sac", "Flocons d'avoine — 1 contenant", "Pain blé entier — 1-2" ] },
   { section: "Gras / sauces / épices", items: [
     "Huile d'olive", "Amandes — 1 sac", "Beurre d'arachide naturel", "Graines de chia — petit sac", "Miel",
     "Sauce soya légère", "Gingembre frais (ou en poudre)",
@@ -254,6 +251,7 @@ const DEFAULTS = {
   proteinTarget: 170,
   kcalTarget: 1950,
   waterTargetL: 2.75,
+  household: 6,
   pushEnabled: false,
   reminders: {
     enabled: false,
