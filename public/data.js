@@ -228,7 +228,7 @@ const GROCERY = [
 // ---- Batch cooking : préparation (dimanche) -----------------------------
 const BATCH_PREP = {
   title: "Dimanche — prépare tout (~1h30)",
-  intro: "Tu cuis les bases une fois; le reste de la semaine = réchauffer + assembler.",
+  intro: "Quantités pour la maisonnée (6) : tu cuis les bases une fois, ça nourrit la famille. Ton assiette à toi reste une portion individuelle (~180 g de protéine).",
   steps: [
     "Préchauffe le four à 200 °C (400 °F). Sors 2 grandes plaques.",
     "POULET BBQ : badigeonne 6-8 poitrines d'huile, assaisonne au paprika fumé + ail + épices BBQ. Plaque 1.",

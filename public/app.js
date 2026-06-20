@@ -352,12 +352,12 @@ function dietRepas(){
       <div class="macro mt">≈ ${m.kcal} kcal · ${m.prot} g protéines${swapped?` · <a onclick="resetMeal('${dietDay}','${type}')" style="color:var(--accent);cursor:pointer">repas du plan</a>`:""}</div>
     </div>`;
   });
-  html += `<div class="muted small center mt">🔀 « Autre option » bascule vers un autre repas complet (calories à jour). Dîner + souper = bols batch, juste à réchauffer.</div>`;
+  html += `<div class="muted small center mt">🍽️ Ces portions et calories sont <strong>pour toi</strong> (1 personne). L'épicerie et la cuisson batch, elles, sont pour la maisonnée (6).<br>🔀 « Autre option » bascule vers un autre repas complet (calories à jour).</div>`;
   return html;
 }
 function dietEpicerie(){
-  let html = `<h2 class="section-title">🛒 Épicerie — batch pour 6</h2>
-    <div class="card row between"><div class="muted small">Coche au fur et à mesure (sauvegardé).</div>
+  let html = `<h2 class="section-title">🛒 Épicerie — pour la maisonnée (6)</h2>
+    <div class="card row between"><div class="muted small">Quantités pour 6 (tes portions à toi restent individuelles). Coche au fur et à mesure.</div>
     <button class="btn-ghost btn-sm" onclick="resetGrocery()">Tout décocher</button></div>`;
   GROCERY.forEach(sec=>{
     html += `<div class="card gro-sec"><h4>${esc(sec.section)}</h4>`;
