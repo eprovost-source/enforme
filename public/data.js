@@ -142,88 +142,55 @@ const WORKOUTS = {
 
 // Jour D = alterne A / B selon la semaine (calculé dans app.js)
 
-// ---- Groupes d'échange pour le "shuffle" des repas ----------------------
-// Chaque ingrédient porte un "group"; le shuffle pige une autre option du
-// même groupe (en respectant : pas de poisson/fruits de mer, pas de tomates).
-const SWAP_GROUPS = {
-  prot: [
-    "poulet grillé (180 g)", "dinde hachée (150 g)", "bœuf haché maigre (180 g)",
-    "porc maigre (180 g)", "dinde tranchée (150 g)", "3 œufs + 2 blancs",
-    "yogourt grec (1 t)", "fromage cottage (1 t)", "shake protéiné"
-  ],
-  carb: [
-    "riz ¾ t", "quinoa ¾ t", "patate douce moyenne", "flocons d'avoine ⅓ t",
-    "tortilla blé entier", "rôtie blé entier"
-  ],
-  veg: [
-    "brocoli", "poivrons", "courgette + oignon", "chou-fleur rôti",
-    "haricots verts", "carottes", "épinards", "légumes mélangés", "concombre + laitue"
-  ],
-  fruit: ["fraises", "framboises", "pomme", "banane"],
-  fat: ["amandes (poignée)", "huile d'olive (filet)", "beurre d'arachide (1 c. à s.)", "graines de chia", "hummus"]
-};
-
-// ---- Plan repas 7 jours -------------------------------------------------
-// type: dej | collation | diner | souper.  i = ingrédients [{l: label, g: groupe ou null}]
-// kcal / prot = approximations pour atteindre ~1950 kcal / ~170 g protéines.
-function meal(title, kcal, prot, items, opts = {}) {
-  return { title, kcal, prot, items, shake: !!opts.shake, note: opts.note || "" };
-}
-function ing(l, g = null) { return { l, g }; }
-
 const DAYS = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"];
 const DAY_LABEL = {
   lundi: "Lundi", mardi: "Mardi", mercredi: "Mercredi", jeudi: "Jeudi",
   vendredi: "Vendredi", samedi: "Samedi", dimanche: "Dimanche"
 };
 
+// ---- Pools de repas (chaque option a ses VRAIES macros) -----------------
+// « Mélanger » bascule vers une autre option du même pool → calories à jour.
+const BREAKFASTS = [
+  { title: "Œufs brouillés + épinards + rôtie", items: ["3 œufs + 2 blancs brouillés", "épinards", "1 rôtie blé entier", "café"], kcal: 400, prot: 32 },
+  { title: "Omelette 3 œufs, épinards, oignon, rôtie", items: ["omelette 3 œufs", "épinards", "oignon", "1 rôtie blé entier"], kcal: 400, prot: 28 },
+  { title: "Yogourt grec + protéine + fraises + avoine", items: ["yogourt grec (1 t)", "1 dose de protéine", "fraises", "flocons d'avoine ⅓ t"], kcal: 420, prot: 45 },
+  { title: "Cottage + fraises + chia + ½ rôtie", items: ["fromage cottage (1 t)", "fraises", "graines de chia", "½ rôtie blé entier"], kcal: 380, prot: 30 },
+  { title: "Pancakes protéinés + fraises", items: ["pancakes protéinés (banane + œufs + protéine + avoine)", "fraises"], kcal: 430, prot: 32 },
+  { title: "Shake protéiné + banane + beurre d'arachide", items: ["shake protéiné (lait)", "banane", "beurre d'arachide (1 c. à s.)"], kcal: 420, prot: 35, shake: true },
+  { title: "Œufs brouillés + rôtie + banane", items: ["3 œufs brouillés", "1 rôtie blé entier", "banane"], kcal: 450, prot: 24 }
+];
+const SNACKS = [
+  { title: "Yogourt grec + fraises + amandes", items: ["yogourt grec (1 t)", "fraises", "amandes (poignée)"], kcal: 300, prot: 27 },
+  { title: "Shake protéiné + amandes", items: ["shake protéiné (eau)", "amandes (poignée)"], kcal: 280, prot: 28, shake: true },
+  { title: "Cottage + pomme", items: ["fromage cottage (1 t)", "pomme"], kcal: 260, prot: 26 },
+  { title: "Shake protéiné + flocons d'avoine", items: ["shake protéiné", "flocons d'avoine ⅓ t"], kcal: 300, prot: 30, shake: true },
+  { title: "Shake protéiné + pomme", items: ["shake protéiné (lait)", "pomme"], kcal: 280, prot: 26, shake: true },
+  { title: "Yogourt grec + miel", items: ["yogourt grec (1 t)", "filet de miel"], kcal: 250, prot: 23 }
+];
+// Bols batch (dîner / souper) — tout vient du batch du dimanche, juste à réchauffer.
+const BOWLS = [
+  { title: "🍗 Bol poulet BBQ", items: ["poulet BBQ (180 g)", "riz ¾ t", "brocoli + chou-fleur rôtis", "filet d'huile d'olive"], kcal: 520, prot: 52, reheat: "Micro-ondes : poulet + légumes 2-3 min, riz 1 min (ou poêle 4 min)." },
+  { title: "🥩 Bol bœuf tex-mex", items: ["bœuf haché tex-mex (180 g)", "quinoa ¾ t", "courgette + poivrons sautés"], kcal: 540, prot: 46, reheat: "Poêle 4-5 min (bœuf + légumes); quinoa au micro-ondes 1 min." },
+  { title: "🐷 Assiette porc + patate douce", items: ["porc rôti tranché (180 g)", "patate douce rôtie", "carottes rôties"], kcal: 540, prot: 48, reheat: "Micro-ondes 2-3 min, couvert (garde le porc juteux)." },
+  { title: "🍗 Sauté poulet asiatique", items: ["poulet (180 g)", "courgette + poivrons", "sauce soya-gingembre", "riz ¾ t"], kcal: 510, prot: 52, reheat: "Poêle 4 min avec un filet de sauce soya; riz 1 min." },
+  { title: "🥩 Bol bœuf + patate douce", items: ["bœuf haché (180 g)", "patate douce rôtie", "brocoli rôti"], kcal: 530, prot: 46, reheat: "Micro-ondes 2-3 min, ou poêle 4 min." },
+  { title: "🐷 Porc BBQ + légumes", items: ["porc rôti tranché (180 g)", "brocoli + chou-fleur rôtis", "riz ¾ t"], kcal: 540, prot: 48, reheat: "Micro-ondes 2-3 min, couvert." },
+  { title: "🍗 Poulet + carottes + quinoa", items: ["poulet BBQ (180 g)", "carottes rôties", "quinoa ¾ t"], kcal: 500, prot: 52, reheat: "Micro-ondes 2 min; quinoa 1 min." },
+  { title: "🥩 Bol bœuf asiatique", items: ["bœuf haché (160 g)", "courgette + poivrons", "sauce soya-gingembre", "riz ¾ t"], kcal: 520, prot: 44, reheat: "Poêle 4 min avec sauce soya; riz 1 min." }
+];
+
+// Plan 7 jours : index dans BREAKFASTS / SNACKS / BOWLS (dîner+souper = bols batch)
 const MEAL_PLAN = {
-  lundi: {
-    dej: meal("Déjeuner", 400, 25, [ing("3 œufs + 2 blancs brouillés", "prot"), ing("épinards", "veg"), ing("rôtie blé entier", "carb"), ing("café")]),
-    collation: meal("Collation", 300, 25, [ing("yogourt grec (1 t)", "prot"), ing("fraises", "fruit"), ing("amandes (poignée)", "fat")], { shake: true, note: "Shake en après-midi si pressé" }),
-    diner: meal("Dîner", 600, 50, [ing("poulet grillé (180 g)", "prot"), ing("riz ¾ t", "carb"), ing("brocoli", "veg"), ing("poivrons", "veg"), ing("huile d'olive (filet)", "fat")]),
-    souper: meal("Souper", 650, 45, [ing("bœuf haché maigre (180 g)", "prot"), ing("courgette + oignon", "veg"), ing("patate douce moyenne", "carb")])
-  },
-  mardi: {
-    dej: meal("Déjeuner", 420, 40, [ing("yogourt grec (1 t)", "prot"), ing("shake protéiné", "prot"), ing("fraises", "fruit"), ing("flocons d'avoine ⅓ t", "carb")]),
-    collation: meal("Collation", 280, 27, [ing("shake protéiné (eau)", "prot"), ing("amandes (poignée)", "fat")], { shake: true }),
-    diner: meal("Dîner", 550, 40, [ing("dinde tranchée (150 g)", "prot"), ing("concombre + laitue", "veg"), ing("hummus", "fat"), ing("tortilla blé entier", "carb")]),
-    souper: meal("Souper", 600, 52, [ing("poulet grillé (180 g)", "prot"), ing("haricots verts", "veg"), ing("riz ¾ t", "carb")])
-  },
-  mercredi: {
-    dej: meal("Déjeuner", 420, 30, [ing("shake protéiné (lait)", "prot"), ing("banane", "fruit"), ing("beurre d'arachide (1 c. à s.)", "fat")], { shake: true, note: "Jour Ozempic — plus léger" }),
-    collation: meal("Collation", 250, 23, [ing("yogourt grec (1 t)", "prot"), ing("miel")]),
-    diner: meal("Dîner", 450, 35, [ing("soupe poulet-légumes (bouillon clair)", "prot"), ing("2 œufs durs", "prot")]),
-    souper: meal("Souper", 520, 40, [ing("dinde hachée (150 g)", "prot"), ing("purée de chou-fleur", "veg"), ing("carottes", "veg")])
-  },
-  jeudi: {
-    dej: meal("Déjeuner", 400, 25, [ing("omelette 3 œufs", "prot"), ing("épinards", "veg"), ing("oignon"), ing("rôtie blé entier", "carb")]),
-    collation: meal("Collation", 280, 27, [ing("shake protéiné (eau)", "prot"), ing("amandes (poignée)", "fat")], { shake: true }),
-    diner: meal("Dîner", 580, 42, [ing("bœuf haché maigre (160 g)", "prot"), ing("quinoa ¾ t", "carb"), ing("légumes rôtis", "veg")]),
-    souper: meal("Souper", 600, 52, [ing("poulet grillé (180 g)", "prot"), ing("brocoli", "veg"), ing("patate douce moyenne", "carb")])
-  },
-  vendredi: {
-    dej: meal("Déjeuner", 380, 28, [ing("fromage cottage (1 t)", "prot"), ing("fraises", "fruit"), ing("graines de chia", "fat"), ing("½ rôtie blé entier", "carb")]),
-    collation: meal("Collation", 300, 25, [ing("shake protéiné (lait)", "prot"), ing("pomme", "fruit")], { shake: true }),
-    diner: meal("Dîner", 560, 42, [ing("poulet grillé (160 g)", "prot"), ing("poivrons", "veg"), ing("hummus", "fat"), ing("tortilla blé entier", "carb")]),
-    souper: meal("Souper", 620, 48, [ing("porc maigre (180 g)", "prot"), ing("chou-fleur rôti", "veg"), ing("riz ¾ t", "carb")])
-  },
-  samedi: {
-    dej: meal("Déjeuner", 450, 24, [ing("3 œufs brouillés", "prot"), ing("rôtie blé entier", "carb"), ing("banane", "fruit")], { note: "Jour hockey — un peu plus de glucides" }),
-    collation: meal("Collation", 300, 28, [ing("shake protéiné", "prot"), ing("flocons d'avoine ⅓ t", "carb")], { shake: true }),
-    diner: meal("Dîner", 620, 50, [ing("dinde hachée (180 g)", "prot"), ing("riz 1 t", "carb"), ing("légumes mélangés", "veg")]),
-    souper: meal("Souper", 650, 45, [ing("bœuf haché maigre (180 g)", "prot"), ing("légumes mélangés", "veg"), ing("patate douce moyenne", "carb")])
-  },
-  dimanche: {
-    dej: meal("Déjeuner", 430, 30, [ing("pancakes protéinés (banane + œufs + protéine + avoine)", "prot"), ing("fraises", "fruit")], { note: "Jour cuisine batch" }),
-    collation: meal("Collation", 280, 27, [ing("shake protéiné (eau)", "prot"), ing("amandes (poignée)", "fat")], { shake: true }),
-    diner: meal("Dîner", 520, 38, [ing("restes au choix de la semaine", "prot"), ing("grosse portion de légumes", "veg")]),
-    souper: meal("Souper", 600, 50, [ing("poulet rôti (180 g)", "prot"), ing("haricots verts", "veg"), ing("quinoa ¾ t", "carb")])
-  }
+  lundi:    { dej: 0, collation: 0, diner: 0, souper: 4 },
+  mardi:    { dej: 2, collation: 1, diner: 1, souper: 6 },
+  mercredi: { dej: 5, collation: 5, diner: 6, souper: 2 },
+  jeudi:    { dej: 1, collation: 1, diner: 3, souper: 4 },
+  vendredi: { dej: 3, collation: 4, diner: 2, souper: 0 },
+  samedi:   { dej: 6, collation: 3, diner: 1, souper: 5 },
+  dimanche: { dej: 4, collation: 0, diner: 7, souper: 3 }
 };
 
 // ---- Calendrier hebdomadaire (modèle par défaut) ------------------------
-// kind: workout (avec id A/B/C/D) | hockey | rest
 const WEEK_TEMPLATE = {
   lundi:    { kind: "workout", id: "A" },
   mardi:    { kind: "workout", id: "B" },
@@ -234,46 +201,49 @@ const WEEK_TEMPLATE = {
   dimanche: { kind: "rest", label: "Repos actif + cuisine batch", note: "Session batch cooking (~1h30). Marche en famille." }
 };
 
-// ---- Liste d'épicerie (batch pour 6 personnes) --------------------------
+// ---- Liste d'épicerie (cohérente avec le plan, batch pour 6) ------------
 const GROCERY = [
   { section: "Viandes et œufs", items: [
     "Poitrines de poulet — 10-12 (≈ 4-5 kg)", "Bœuf haché maigre — 4 lbs",
-    "Dinde hachée — 2 lbs", "Filet de porc — 2 (≈ 1,5 kg)",
-    "Dinde tranchée (charcuterie) — 1 paquet", "Œufs — 3 douzaines" ] },
+    "Porc (filet ou longe) — 2-3 (≈ 2 kg)", "Œufs — 3 douzaines" ] },
   { section: "Produits laitiers / frigo", items: [
     "Yogourt grec nature — 1 gros format (750 g-1 kg)", "Fromage cottage — 1 gros contenant",
-    "Lait — selon la maisonnée (shakes)", "Hummus — 1-2 contenants" ] },
+    "Lait — selon la maisonnée (shakes)" ] },
   { section: "Protéine en poudre", items: [
     "1 pot whey ou végétale, ~25 g/portion, faible en sucre (≈ 1 mois)" ] },
   { section: "Fruits", items: [
-    "Fraises — 2-3 casseaux", "Bananes — 1 régime", "Pommes — sac",
-    "Framboises — 1 casseau (optionnel)" ] },
+    "Fraises — 2-3 casseaux", "Bananes — 1 régime", "Pommes — sac" ] },
   { section: "Légumes", items: [
-    "Brocoli — 3-4 têtes", "Poivrons — 6-8", "Courgettes — 4-5", "Chou-fleur — 2",
-    "Carottes — 1 sac", "Haricots verts — 2 sacs", "Épinards — 1 gros sac",
-    "Oignons — sac", "Concombres — 2-3", "Laitue — 1-2",
-    "Légumes surgelés mélangés — 2-3 sacs" ] },
+    "Brocoli — 3-4 têtes", "Chou-fleur — 2", "Courgettes — 4-5", "Poivrons — 6-8",
+    "Oignons — sac", "Carottes — 1 sac", "Patates douces — 6-8", "Épinards — 1 gros sac" ] },
   { section: "Féculents / garde-manger", items: [
-    "Riz — 1 gros sac", "Quinoa — 1 sac", "Patates douces — 6-8",
-    "Flocons d'avoine — 1 contenant", "Pain blé entier — 1-2", "Tortillas blé entier — 1-2 paquets" ] },
-  { section: "Gras / extras", items: [
-    "Huile d'olive", "Amandes — 1 sac", "Beurre d'arachide naturel",
-    "Graines de chia — petit sac", "Miel",
-    "Assaisonnements : ail, paprika, cumin, sel, poivre, sauce soya légère" ] }
+    "Riz — 1 gros sac", "Quinoa — 1 sac", "Flocons d'avoine — 1 contenant", "Pain blé entier — 1-2" ] },
+  { section: "Gras / sauces / épices", items: [
+    "Huile d'olive", "Amandes — 1 sac", "Beurre d'arachide naturel", "Graines de chia — petit sac", "Miel",
+    "Sauce soya légère", "Gingembre frais (ou en poudre)",
+    "Épices : ail, paprika fumé, cumin, poudre de chili, sel, poivre",
+    "Mélange d'épices BBQ (sans sucre)" ] }
 ];
 
-// ---- Guide batch cooking ------------------------------------------------
-const BATCH_GUIDE = {
-  dimanche: { title: "Dimanche — grosse session (~1h30)", steps: [
-    "Plaque de poulet au four : 8-10 poitrines (base de plusieurs repas).",
-    "Gros chaudron de bœuf haché maigre assaisonné (3-4 lbs) — bols, wraps, tacos.",
-    "Un gros plat de riz + un de quinoa.",
-    "Plaques de légumes rôtis (brocoli, poivrons, courgette, chou-fleur, carottes).",
-    "Une douzaine d'œufs durs d'avance." ] },
-  mercredi: { title: "Mercredi — petite session (~30 min)", steps: [
-    "Refaire du riz / quinoa frais.",
-    "Une 2e plaque de légumes rôtis.",
-    "Cuire une protéine différente (dinde ou porc) pour casser la monotonie." ] }
+// ---- Batch cooking : préparation (dimanche) -----------------------------
+const BATCH_PREP = {
+  title: "Dimanche — prépare tout (~1h30)",
+  intro: "Tu cuis les bases une fois; le reste de la semaine = réchauffer + assembler.",
+  steps: [
+    "Préchauffe le four à 200 °C (400 °F). Sors 2 grandes plaques.",
+    "POULET BBQ : badigeonne 6-8 poitrines d'huile, assaisonne au paprika fumé + ail + épices BBQ. Plaque 1.",
+    "PORC : frotte 1-2 filets/longes d'huile + ail + herbes (sel, poivre). Plaque 1 aussi (ou 2e plaque).",
+    "Enfourne poulet + porc 22-28 min (74 °C à cœur). Laisse reposer 5 min, tranche, range en contenants.",
+    "LÉGUMES : sur une plaque, brocoli + chou-fleur; sur une autre, carottes. Huile + sel. Rôtis 20-25 min.",
+    "BŒUF TEX-MEX : dans un grand chaudron, fais revenir 1 oignon, ajoute 3-4 lbs de bœuf haché, cumin + paprika + chili (sans tomate). Cuis, égoutte le gras.",
+    "SAUTÉ DE LÉGUMES : poêle courgette + poivrons + oignon 6-8 min, garde croquant.",
+    "FÉCULENTS : cuis un gros plat de riz + un de quinoa. Rôtis aussi 6-8 patates douces en cubes.",
+    "Refroidis, puis range tout en contenants par composante. Conserve 4 jours au frigo (congèle le surplus)."
+  ],
+  refresh: { title: "Mercredi — petit rafraîchissement (~20 min)", steps: [
+    "Refais du riz ou du quinoa frais.",
+    "Rôtis une nouvelle plaque de légumes (brocoli/chou-fleur ou carottes).",
+    "Au besoin, cuis une protéine de plus (poulet ou porc) pour finir la semaine." ] }
 };
 
 // ---- Réglages par défaut ------------------------------------------------
@@ -296,51 +266,50 @@ const DEFAULTS = {
 // Doses Ozempic (titration habituelle — suivi par le médecin)
 const OZEMPIC_DOSES = ["0,25 mg", "0,5 mg", "1,0 mg", "1,7 mg", "2,0 mg"];
 
-// Recettes détaillées (surtout les bases batch + quelques montages)
+// Recettes détaillées des composantes batch
 const RECIPES = [
-  { id: "poulet", emoji: "🍗", title: "Poulet au four (batch)", time: "~35 min", yield: "8-10 poitrines",
-    ingredients: ["8-10 poitrines de poulet", "Huile d'olive (2 c. à s.)", "Paprika, ail, sel, poivre", "Cumin (optionnel)"],
+  { id: "poulet_bbq", emoji: "🍗", title: "Poulet BBQ au four (batch)", time: "~30 min", yield: "6-8 poitrines",
+    ingredients: ["6-8 poitrines de poulet", "Huile d'olive (2 c. à s.)", "Paprika fumé + ail", "Mélange BBQ sans sucre, sel, poivre"],
     steps: [
       "Préchauffe le four à 200 °C (400 °F).",
-      "Éponge les poitrines, dépose-les sur une grande plaque.",
-      "Badigeonne d'huile, assaisonne généreusement des deux côtés.",
-      "Cuis 22-28 min, jusqu'à 74 °C à cœur (jus clair).",
-      "Laisse reposer 5 min, tranche. Conserve 4 jours au frigo." ] },
-  { id: "boeuf", emoji: "🥩", title: "Bœuf haché maigre assaisonné (batch)", time: "~20 min", yield: "3-4 lbs",
-    ingredients: ["3-4 lbs bœuf haché maigre", "1 oignon haché", "Ail", "Paprika, cumin, sel, poivre", "Sauce soya légère (filet)"],
+      "Badigeonne le poulet d'huile, frotte généreusement d'épices BBQ + paprika fumé + ail.",
+      "Plaque en une seule couche, cuis 22-28 min (74 °C à cœur).",
+      "Repos 5 min, tranche. Range en contenants — 4 jours au frigo." ] },
+  { id: "porc", emoji: "🐷", title: "Porc rôti (batch)", time: "~30 min", yield: "2 filets/longes",
+    ingredients: ["1-2 filets ou longes de porc", "Huile d'olive", "Ail, herbes, sel, poivre"],
+    steps: [
+      "Four à 200 °C (400 °F). Frotte le porc d'huile + ail + herbes.",
+      "Rôtis 22-28 min (63-65 °C à cœur pour le filet, juteux).",
+      "Repos 5 min IMPORTANT, puis tranche fin.",
+      "Range en contenants — réchauffe couvert pour garder moelleux." ] },
+  { id: "boeuf_texmex", emoji: "🥩", title: "Bœuf haché tex-mex (batch, sans tomate)", time: "~20 min", yield: "3-4 lbs",
+    ingredients: ["3-4 lbs bœuf haché maigre", "1 oignon haché", "Ail", "Cumin + paprika + poudre de chili", "Sel, poivre"],
     steps: [
       "Fais revenir l'oignon 3 min dans un grand chaudron.",
-      "Ajoute le bœuf, défais-le à la cuillère, cuis jusqu'à ce qu'il ne soit plus rosé.",
-      "Égoutte le gras. Assaisonne, ajoute un filet de sauce soya.",
-      "Laisse mijoter 3-4 min. Sert en bols, wraps, tacos. Conserve 4 jours." ] },
-  { id: "legumes", emoji: "🥦", title: "Légumes rôtis (batch)", time: "~25 min", yield: "2-3 plaques",
-    ingredients: ["Brocoli, poivrons, courgette, chou-fleur, carottes", "Huile d'olive", "Sel, poivre, ail"],
+      "Ajoute le bœuf, défais-le, cuis jusqu'à plus rosé.",
+      "Égoutte le gras. Assaisonne cumin + paprika + chili (pas de tomate).",
+      "Mijote 3-4 min. Pour bols et wraps. 4 jours au frigo." ] },
+  { id: "legumes", emoji: "🥦", title: "Légumes rôtis (batch)", time: "~25 min", yield: "2 plaques",
+    ingredients: ["Brocoli, chou-fleur, carottes", "Huile d'olive", "Sel, poivre, ail"],
     steps: [
-      "Préchauffe à 220 °C (425 °F).",
-      "Coupe les légumes en morceaux réguliers.",
-      "Mélange avec huile + assaisonnements, étale en une couche sur les plaques.",
-      "Rôtis 20-25 min en remuant à mi-cuisson. Conserve 4-5 jours." ] },
+      "Four à 220 °C (425 °F). Coupe en morceaux réguliers.",
+      "Brocoli + chou-fleur sur une plaque; carottes sur l'autre.",
+      "Huile + assaisonnements, une seule couche.",
+      "Rôtis 20-25 min en remuant à mi-cuisson. 4-5 jours." ] },
+  { id: "saute_asia", emoji: "🥢", title: "Sauté de légumes asiatique (batch)", time: "~10 min", yield: "Grande poêlée",
+    ingredients: ["Courgette + poivrons + oignon", "Sauce soya légère", "Gingembre + ail", "Filet d'huile"],
+    steps: [
+      "Chauffe une grande poêle à feu vif avec un filet d'huile.",
+      "Ajoute oignon, poivrons, courgette; saute 6-8 min (garde croquant).",
+      "Ail + gingembre + filet de sauce soya, 1 min de plus.",
+      "Parfait avec poulet ou bœuf + riz." ] },
   { id: "pancakes", emoji: "🥞", title: "Pancakes protéinés", time: "~10 min", yield: "1 portion",
     ingredients: ["1 banane", "2 œufs", "1 dose protéine en poudre", "⅓ tasse flocons d'avoine", "Fraises"],
     steps: [
       "Écrase la banane, mélange avec œufs, protéine et avoine.",
       "Laisse reposer 2 min (l'avoine épaissit).",
       "Cuis à feu moyen, petites louches, ~2 min par côté.",
-      "Garnis de fraises. ~30 g de protéines." ] },
-  { id: "chou-fleur", emoji: "🥣", title: "Purée de chou-fleur", time: "~15 min", yield: "4 portions",
-    ingredients: ["1 chou-fleur", "Un peu de lait", "Sel, poivre, ail"],
-    steps: [
-      "Coupe le chou-fleur, fais-le bouillir ou cuire vapeur 10-12 min (bien tendre).",
-      "Égoutte très bien.",
-      "Réduis en purée avec un peu de lait, sel, poivre, ail.",
-      "Alternative basse en glucides à la purée de patates." ] },
-  { id: "soupe", emoji: "🍲", title: "Soupe poulet-légumes", time: "~15 min (avec batch)", yield: "Gros chaudron",
-    ingredients: ["Poulet du batch", "Bouillon de poulet clair", "Carottes, céleri, oignon", "Sel, poivre, herbes"],
-    steps: [
-      "Fais revenir oignon, carottes, céleri 4 min.",
-      "Ajoute le bouillon, porte à ébullition.",
-      "Ajoute le poulet effiloché du batch, mijote 8-10 min.",
-      "Ajuste l'assaisonnement. Douce pour l'estomac (jours Ozempic)." ] }
+      "Garnis de fraises. ~30 g de protéines." ] }
 ];
 
 // Petites citations de motivation (rotation quotidienne)

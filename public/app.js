@@ -161,12 +161,12 @@ function renderToday(){
   // Repas du jour
   html += `<h2 class="section-title">🍽️ Repas du jour</h2><div class="card">`;
   ["dej","collation","diner","souper"].forEach(type=>{
-    const m=plan[type]; const id="meal-"+type; const done=checks[id];
+    const m=activeMeal(dn,type); const id="meal-"+type; const done=checks[id];
     html += `<div class="check ${done?'done':''}">
       <input type="checkbox" ${done?"checked":""} onchange="toggleCheck('${id}')">
       <div class="body">
-        <div class="t">${esc(m.title)} <span class="muted small">· ${m.kcal} kcal · ${m.prot} g prot.</span>${m.shake?' <span class="pill accent">+ shake</span>':""}</div>
-        <div class="d">${m.items.map(i=>esc(effLabel(dn,type,i,m.items.indexOf(i)))).join(" · ")}</div>
+        <div class="t">${esc(m.label)} <span class="muted small">· ${m.kcal} kcal · ${m.prot} g</span>${m.shake?' <span class="pill accent">+ shake</span>':""}</div>
+        <div class="d">${esc(m.title)}</div>
       </div>
       <button class="icon-btn" onclick="switchView('diet');setDietDay('${dn}')">›</button>
     </div>`;
@@ -179,7 +179,7 @@ function renderToday(){
   const photoP = j.reduce((s,e)=>s+(e.protein||0),0);
   let mealsK = 0, mealsP = 0;
   ["dej","collation","diner","souper"].forEach(type=>{
-    if(checks["meal-"+type]){ mealsK += plan[type].kcal; mealsP += plan[type].prot; }
+    if(checks["meal-"+type]){ const am=activeMeal(dn,type); mealsK += am.kcal; mealsP += am.prot; }
   });
   const eatenK = mealsK + photoK, eatenP = mealsP + photoP;
   const remK = S.settings.kcalTarget - eatenK;
@@ -245,13 +245,12 @@ function renderCal(){
       let id=t.id; const def= id==="D"? WORKOUTS[jourDTarget(new Date())] : WORKOUTS[id];
       emoji=id; label=def.title.replace(/^Jour [A-D] — /,""); color=def.color;
     } else if(t.kind==="hockey"){ emoji="🏒"; }
-    const plan=MEAL_PLAN[dn];
     html += `<div class="cal-day ${dn===tn?'today':''}">
       <div class="dot" style="background:${color}22;color:${color};font-weight:800">${emoji}</div>
       <div class="info">
         <div class="day">${DAY_LABEL[dn]}${dn===tn?' · aujourd’hui':''}</div>
         <div class="what">${t.kind==="workout"?"🏋️ ":""}${esc(label)}</div>
-        <div class="what">🍽️ ${esc(plan.dej.items[0].l)} · ${esc(effLabel(dn,'souper',plan.souper.items[0],0))}…</div>
+        <div class="what">🍽️ ${esc(activeMeal(dn,'diner').title)} · ${esc(activeMeal(dn,'souper').title)}</div>
       </div>
       <div style="display:flex;flex-direction:column;gap:6px">
         ${t.kind==="workout"?`<button class="btn-ghost btn-sm" onclick="gotoWorkout('${t.id==='D'?jourDTarget(new Date()):t.id}')">Séance</button>`:""}
@@ -339,24 +338,21 @@ function dietRepas(){
   let html = `<div class="row wrap" style="gap:6px;margin-bottom:8px">`;
   DAYS.forEach(dn=> html += `<button class="${dietDay===dn?'btn-accent':'btn-ghost'} btn-sm" onclick="setDietDay('${dn}')">${DAY_LABEL[dn].slice(0,3)}</button>`);
   html += `</div><h2 class="section-title">${DAY_LABEL[dietDay]} · ${dayKcal(dietDay)} kcal · ~${dayProt(dietDay)} g prot.</h2>`;
-  const plan = MEAL_PLAN[dietDay];
   ["dej","collation","diner","souper"].forEach(type=>{
-    const m=plan[type];
+    const m = activeMeal(dietDay,type);
+    const swapped = typeof S.mealOverrides[dietDay+"-"+type] === "number";
     html += `<div class="card meal">
-      <div class="head"><h3>${esc(m.title)}${m.shake?' <span class="pill accent">shake</span>':""}</h3>
-        <button class="btn-ghost btn-sm" onclick="shuffleMeal('${dietDay}','${type}')">🔀 Mélanger</button></div>
-      ${m.note?`<div class="muted small">${esc(m.note)}</div>`:""}
-      <div class="ings">`;
-    m.items.forEach((it,idx)=>{
-      const label = effLabel(dietDay,type,it,idx);
-      html += `<div class="ing">
-        <span>${esc(label)}</span>
-        ${it.g?`<button class="swp" title="Remplacer / enlever" onclick="openSwap('${dietDay}','${type}',${idx},'${it.g}')">🔀</button>`:""}
-      </div>`;
-    });
-    html += `</div><div class="macro">≈ ${m.kcal} kcal · ${m.prot} g protéines</div></div>`;
+      <div class="head"><h3>${esc(m.label)}</h3>
+        <button class="btn-ghost btn-sm" onclick="cycleMeal('${dietDay}','${type}')">🔀 Autre option</button></div>
+      <div class="row between" style="align-items:flex-start">
+        <strong>${esc(m.title)}${m.shake?' <span class="pill accent">shake</span>':""}</strong>
+      </div>
+      <div class="ings mt">${m.items.map(i=>`<div class="ing"><span>${esc(i)}</span></div>`).join("")}</div>
+      ${m.reheat?`<div class="muted small mt">🔥 <strong>Réchauffer :</strong> ${esc(m.reheat)}</div>`:""}
+      <div class="macro mt">≈ ${m.kcal} kcal · ${m.prot} g protéines${swapped?` · <a onclick="resetMeal('${dietDay}','${type}')" style="color:var(--accent);cursor:pointer">repas du plan</a>`:""}</div>
+    </div>`;
   });
-  html += `<div class="muted small center mt">🔀 = remplacer un aliment que tu ne veux pas (même groupe nutritionnel).</div>`;
+  html += `<div class="muted small center mt">🔀 « Autre option » bascule vers un autre repas complet (calories à jour). Dîner + souper = bols batch, juste à réchauffer.</div>`;
   return html;
 }
 function dietEpicerie(){
@@ -377,18 +373,25 @@ function dietEpicerie(){
   return html;
 }
 function dietBatch(){
-  let html = `<h2 class="section-title">🍳 Plan batch cooking</h2>`;
-  ["dimanche","mercredi"].forEach(k=>{
-    const b=BATCH_GUIDE[k];
-    html += `<div class="card"><h3>${esc(b.title)}</h3><div class="ings">`;
-    b.steps.forEach((s,i)=> html += `<div class="ing"><span><strong>${i+1}.</strong> ${esc(s)}</span></div>`);
-    html += `</div></div>`;
+  let html = `<h2 class="section-title">🍳 ${esc(BATCH_PREP.title)}</h2>
+    <div class="muted small" style="margin:0 4px 8px">${esc(BATCH_PREP.intro)}</div>
+    <div class="card"><div class="ings">`;
+  BATCH_PREP.steps.forEach((s,i)=> html += `<div class="ing"><span><strong style="color:var(--accent2)">${i+1}.</strong> ${esc(s)}</span></div>`);
+  html += `</div></div>`;
+  const rf = BATCH_PREP.refresh;
+  html += `<div class="card"><h3>${esc(rf.title)}</h3><div class="ings">`;
+  rf.steps.forEach((s,i)=> html += `<div class="ing"><span><strong>${i+1}.</strong> ${esc(s)}</span></div>`);
+  html += `</div></div>`;
+  html += `<div class="card"><h3>🔥 Chaque jour : réchauffer</h3><div class="muted small mb">Tes bols dîner/souper sont prêts — voici comment les réchauffer cette semaine :</div><div class="ings">`;
+  DAYS.forEach(dn=>{
+    const di = activeMeal(dn,"diner"), so = activeMeal(dn,"souper");
+    html += `<div class="ing" style="flex-direction:column;align-items:stretch;gap:2px">
+      <span><strong>${DAY_LABEL[dn]}</strong></span>
+      <span class="muted small">🍽️ ${esc(di.title)} — ${esc(di.reheat||"réchauffer 2-3 min")}</span>
+      <span class="muted small">🌙 ${esc(so.title)} — ${esc(so.reheat||"réchauffer 2-3 min")}</span>
+    </div>`;
   });
-  html += `<div class="card"><h3>Repas express (&lt; 10 min)</h3><div class="muted small">
-    <p><strong>Bols</strong> : protéine batch + riz/quinoa + légumes + sauce. Chacun monte le sien.</p>
-    <p><strong>Tacos/wraps</strong> : bœuf batch réchauffé, tortillas, garnitures sur la table.</p>
-    <p><strong>Sautés</strong> : protéine batch + sac de légumes surgelés, 8 min à la poêle.</p>
-  </div></div>`;
+  html += `</div></div>`;
   return html;
 }
 function dietRecettes(){
@@ -415,44 +418,29 @@ function openRecipe(id){
   openModal(html);
 }
 
-/* ---- Repas : labels effectifs + shuffle ---- */
-function effLabel(day,type,item,idx){
+/* ---- Repas : option active + bascule cohérente ---- */
+function mealPool(type){ return type==="dej" ? BREAKFASTS : type==="collation" ? SNACKS : BOWLS; }
+function mealLabel(type){ return type==="dej" ? "Déjeuner" : type==="collation" ? "Collation" : type==="diner" ? "Dîner" : "Souper"; }
+function activeIndex(day,type){
   const ov = S.mealOverrides[day+"-"+type];
-  if(ov && ov[idx]!=null) return ov[idx];
-  return item.l;
+  const pool = mealPool(type);
+  if(typeof ov === "number" && ov >= 0 && ov < pool.length) return ov;
+  return MEAL_PLAN[day][type];   // défaut du plan
 }
-function setOverride(day,type,idx,label){
-  const k=day+"-"+type; S.mealOverrides[k]=S.mealOverrides[k]||{};
-  if(label==null) delete S.mealOverrides[k][idx]; else S.mealOverrides[k][idx]=label;
+function activeMeal(day,type){
+  const pool = mealPool(type);
+  const m = pool[activeIndex(day,type)] || pool[0];
+  return Object.assign({ label: mealLabel(type) }, m);
+}
+function cycleMeal(day,type){
+  const pool = mealPool(type);
+  const next = (activeIndex(day,type) + 1) % pool.length;
+  S.mealOverrides[day+"-"+type] = next;
   save();
-}
-function shuffleMeal(day,type){
-  const m=MEAL_PLAN[day][type];
-  m.items.forEach((it,idx)=>{
-    if(!it.g) return;
-    const opts=SWAP_GROUPS[it.g].filter(o=>o!==effLabel(day,type,it,idx));
-    const pick=opts[Math.floor(Math.random()*opts.length)];
-    setOverride(day,type,idx,pick);
-  });
-  toast("Repas mélangé 🔀");
+  toast("Autre option 🔀");
   renderDiet();
 }
-function openSwap(day,type,idx,group){
-  const cur=effLabel(day,type,MEAL_PLAN[day][type].items[idx],idx);
-  const orig=MEAL_PLAN[day][type].items[idx].l;
-  let html=`<h3>Remplacer l'aliment</h3><div class="muted small mb">Actuel : <strong>${esc(cur)}</strong></div>`;
-  SWAP_GROUPS[group].forEach(o=>{
-    if(o===cur) return;
-    html+=`<div class="swap-opt" onclick="applySwap('${day}','${type}',${idx},'${esc(o).replace(/'/g,"\\'")}')">${esc(o)}</div>`;
-  });
-  html+=`<div class="swap-opt" style="border-color:var(--accent)" onclick="applySwap('${day}','${type}',${idx},'${esc(orig).replace(/'/g,"\\'")}',true)">↩︎ Remettre l'original (${esc(orig)})</div>
-    <button class="btn-ghost btn-block mt" onclick="closeModal()">Annuler</button>`;
-  openModal(html);
-}
-function applySwap(day,type,idx,label,isOrig){
-  setOverride(day,type,idx, isOrig?null:label);
-  closeModal(); renderDiet(); toast("Remplacé ✓");
-}
+function resetMeal(day,type){ delete S.mealOverrides[day+"-"+type]; save(); renderDiet(); toast("Repas du plan rétabli"); }
 
 /* ====================================================================
    VUE — SUIVI (poids + réglages + rappels)
@@ -543,9 +531,9 @@ function renderTrack(){
 function lastNDates(n){ const arr=[]; const d=new Date(); for(let i=n-1;i>=0;i--){ const x=new Date(d); x.setDate(d.getDate()-i); arr.push(dateKey(x)); } return arr; }
 function dayEaten(dk){
   const p=dk.split("-").map(Number); const d=new Date(p[0],p[1]-1,p[2]); const dn=dayNameOf(d);
-  const plan=MEAL_PLAN[dn]; const checks=S.checks[dk]||{}; const j=S.journal[dk]||[];
+  const checks=S.checks[dk]||{}; const j=S.journal[dk]||[];
   let k=0,pr=0,logged=false;
-  ["dej","collation","diner","souper"].forEach(t=>{ if(checks["meal-"+t]){ k+=plan[t].kcal; pr+=plan[t].prot; logged=true; } });
+  ["dej","collation","diner","souper"].forEach(t=>{ if(checks["meal-"+t]){ const am=activeMeal(dn,t); k+=am.kcal; pr+=am.prot; logged=true; } });
   j.forEach(e=>{ k+=e.kcal||0; pr+=e.protein||0; logged=true; });
   return { kcal:k, protein:pr, logged, workout: !!checks.workout };
 }
@@ -882,8 +870,8 @@ function capitalize(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
 const MOIS=["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
 function moisFr(m){ return MOIS[m]; }
 function frFullDate(k){ const [y,m,d]=k.split("-").map(Number); return d+" "+MOIS[m-1]; }
-function dayKcal(dn){ const p=MEAL_PLAN[dn]; return ["dej","collation","diner","souper"].reduce((s,t)=>s+p[t].kcal,0); }
-function dayProt(dn){ const p=MEAL_PLAN[dn]; return ["dej","collation","diner","souper"].reduce((s,t)=>s+p[t].prot,0); }
+function dayKcal(dn){ return ["dej","collation","diner","souper"].reduce((s,t)=>s+activeMeal(dn,t).kcal,0); }
+function dayProt(dn){ return ["dej","collation","diner","souper"].reduce((s,t)=>s+activeMeal(dn,t).prot,0); }
 
 /* ---- Animation des photos d'exercices ---- */
 let animOn=false;
