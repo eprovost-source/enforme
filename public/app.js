@@ -413,7 +413,16 @@ function dietBatch(){
   return html;
 }
 function dietRecettes(){
-  let html = `<h2 class="section-title">📖 Recettes détaillées</h2>`;
+  let html = `<h2 class="section-title">🍱 Bols (dîner / souper)</h2>
+    <div class="muted small" style="margin:0 4px 8px">Chaque bol = composantes du batch, juste à assembler.</div>`;
+  BOWLS.forEach((b,i)=>{
+    html += `<div class="card" onclick="openBowl(${i})" style="cursor:pointer">
+      <div class="row between"><h3>${esc(b.title)}</h3><span class="muted small">${b.kcal} kcal ›</span></div>
+      <div class="muted small">${b.prot} g protéines · ${b.items.length} ingrédients</div>
+    </div>`;
+  });
+  html += `<h2 class="section-title">🧑‍🍳 Composantes batch (dimanche)</h2>
+    <div class="muted small" style="margin:0 4px 8px">Les bases à cuisiner en gros (quantités pour la maisonnée).</div>`;
   RECIPES.forEach(r=>{
     html += `<div class="card" onclick="openRecipe('${r.id}')" style="cursor:pointer">
       <div class="row between"><h3>${r.emoji} ${esc(r.title)}</h3><span class="muted small">${esc(r.time)} ›</span></div>
@@ -421,6 +430,23 @@ function dietRecettes(){
     </div>`;
   });
   return html;
+}
+function openBowl(i){
+  const b = BOWLS[i]; if(!b) return;
+  let html = `<h3>${esc(b.title)}</h3>
+    <div class="muted small mb">${b.kcal} kcal · ${b.prot} g protéines · 1 portion (toi)</div>
+    <div style="background:var(--card2);border-radius:12px;padding:12px;margin-bottom:10px">
+      <strong>Dans ton bol</strong>
+      <div class="ings mt">${b.items.map(it=>`<div class="ing"><span>${esc(it)}</span></div>`).join("")}</div>
+    </div>
+    <strong>Assemblage</strong><div class="ings mt">
+      <div class="ing"><span><strong style="color:var(--accent2)">1.</strong> Sors les composantes du batch (déjà cuites le dimanche) et porte tes portions.</span></div>
+      <div class="ing"><span><strong style="color:var(--accent2)">2.</strong> 🔥 ${esc(b.reheat||"Réchauffe 2-3 min au micro-ondes ou à la poêle.")}</span></div>
+      <div class="ing"><span><strong style="color:var(--accent2)">3.</strong> Assemble dans un bol, ajuste l'assaisonnement, et déguste.</span></div>
+    </div>
+    <div class="muted small mt">💡 Recettes des composantes : voir « Composantes batch » ci-dessous.</div>
+    <button class="btn-ghost btn-block mt" onclick="closeModal()">Fermer</button>`;
+  openModal(html);
 }
 function openRecipe(id){
   const r = RECIPES.find(x=>x.id===id); if(!r) return;
